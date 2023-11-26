@@ -81,9 +81,9 @@ classdef UI < handle
 
         end
 
-        % Interrupts for buttons, This function takes array 1x6 representing [Up Down
+        % Defines which buttons you want to use, This function takes array 1x6 representing [Up Down
         % Left Right Enter Exit]. Array consist of either 0 or 1. 0 equals
-        % no interrupt 1 equals interrupt. If there is interrupt enabled a
+        % no use 1 equals use. If there is interrupt enabled a
         % user must define appropriate function eg. [1 0 1 0 0 0], I have
         % to define two function BtnUpPressed(), BtnLeftPressed().
         function enableButtonsIRQ(this, enableArr)
@@ -449,10 +449,6 @@ classdef UI < handle
                         if (this.GameFlag)
                             this.Game.BtnUpPressed();
                         end
-                    % else
-                    %     this.KeyControls(Enums.Up) = 1;
-                    %     this.KeyOk = 1;
-                    % end
                     end
                 case 'downarrow'
                     if (~this.GameFlag)
@@ -461,9 +457,6 @@ classdef UI < handle
                         if (this.GameFlag)
                             this.Game.BtnDownPressed();
                         end
-                    % else
-                    %     this.KeyControls(Enums.Down) = 1;
-                    %     this.KeyOk = 1;
                     end
                 case 'rightarrow'
                     if (~this.GameFlag)
@@ -472,9 +465,6 @@ classdef UI < handle
                         if (this.GameFlag)
                             this.Game.BtnRightPressed();
                         end
-                    % else
-                    %     this.KeyControls(Enums.Right) = 1;
-                    %     this.KeyOk = 1;
                     end
                 case 'leftarrow'
                     if (~this.GameFlag)
@@ -483,9 +473,6 @@ classdef UI < handle
                         if (this.GameFlag)
                          this.Game.BtnLeftPressed();
                         end
-                    % else
-                    %     this.KeyControls(Enums.Left) = 1;
-                    %     this.KeyOk = 1;
                     end
                 case 'space'
                     if (~this.GameFlag)
@@ -494,9 +481,6 @@ classdef UI < handle
                         if (this.GameFlag)
                             this.Game.BtnEnterPressed();
                         end
-                    % else
-                    %     this.KeyControls(Enums.BtnEnter) = 1;
-                    %     this.KeyOk = 1;
                     end
                 case 'escape'
                     if (~this.GameFlag)
@@ -505,20 +489,8 @@ classdef UI < handle
                         if (this.GameFlag)
                             this.Game.BtnExitPressed();
                         end
-                    % else
-                    %     this.KeyControls(Enums.BtnExit) = 1;
-                    %     this.KeyOk = 1;
                     end
             end
-
-            % if this.KeyOk
-            % 
-            %     if (~this.GameFlag)
-            %         this.newControls(this.KeyControls);
-            %         this.KeyOk = 0;
-            %     end
-            % 
-            % end
         end
 
         function serialNewData(this, data)
@@ -538,8 +510,6 @@ classdef UI < handle
                         this.Game.BtnEnterPressed();
                     end
                 end
-            % else
-            %     this.JoyControls(Enums.BtnEnter) = btn1;
             end
 
             if (btn2)
@@ -552,8 +522,6 @@ classdef UI < handle
                         this.Game.BtnExitPressed();
                     end
                 end
-            % else
-            %     this.JoyControls(Enums.BtnExit) = btn2;
             end
 
             if (Y > 30 && Y < 70)
@@ -562,33 +530,25 @@ classdef UI < handle
                 this.stopMyTimer(Enums.RepeatTimerYE);
             end
             if (Y > 80)
-                % if (this.ControlsIRQ(Enums.Up))
-                    this.RepeatCounterY = this.RepeatCounterY + 1;
-                    this.stopMyTimer(Enums.RepeatTimerYE);
-                    if(this.RepeatCounterY > 5)
-                        set(this.RepeatTimerY, 'Period', 0.05);
-                    else
-                        set(this.RepeatTimerY, 'Period', 0.5);
-                    end
-                    this.startMyTimer(Enums.RepeatTimerYE);
-                    this.JoyControls(Enums.Up) = 1;
-                % else
-                %     this.JoyControls(Enums.Up) = 1;
-                % end
+                this.RepeatCounterY = this.RepeatCounterY + 1;
+                this.stopMyTimer(Enums.RepeatTimerYE);
+                if(this.RepeatCounterY > 5)
+                    set(this.RepeatTimerY, 'Period', 0.05);
+                else
+                    set(this.RepeatTimerY, 'Period', 0.5);
+                end
+                this.startMyTimer(Enums.RepeatTimerYE);
+                this.JoyControls(Enums.Up) = 1;
             elseif (Y < 20)
-                % if (this.ControlsIRQ(Enums.Down))
-                    this.RepeatCounterY = this.RepeatCounterY + 1;
-                    this.stopMyTimer(Enums.RepeatTimerYE);
-                    if(this.RepeatCounterY > 5)
-                        set(this.RepeatTimerY, 'Period', 0.05);
-                    else
-                        set(this.RepeatTimerY, 'Period', 0.5);
-                    end
-                    this.startMyTimer(Enums.RepeatTimerYE);
-                    this.JoyControls(Enums.Down) = 1;
-                % else
-                %     this.JoyControls(Enums.Down) = 1;
-                % end
+                this.RepeatCounterY = this.RepeatCounterY + 1;
+                this.stopMyTimer(Enums.RepeatTimerYE);
+                if(this.RepeatCounterY > 5)
+                    set(this.RepeatTimerY, 'Period', 0.05);
+                else
+                    set(this.RepeatTimerY, 'Period', 0.5);
+                end
+                this.startMyTimer(Enums.RepeatTimerYE);
+                this.JoyControls(Enums.Down) = 1;
             end
 
             if (X > 30 && X < 70)
@@ -597,39 +557,26 @@ classdef UI < handle
                 this.stopMyTimer(Enums.RepeatTimerXE);
             end
             if (X < 20)
-                % if (this.ControlsIRQ(Enums.Right))
-                    this.RepeatCounterX = this.RepeatCounterX + 1;
-                    this.stopMyTimer(Enums.RepeatTimerXE);
-                    if(this.RepeatCounterX > 5)
-                        set(this.RepeatTimerX, 'Period', 0.05);
-                    else
-                        set(this.RepeatTimerX, 'Period', 0.5);
-                    end
-                    this.startMyTimer(Enums.RepeatTimerXE);
-                    this.JoyControls(Enums.Right) = 1;
-                % else
-                %     this.JoyControls(Enums.Right) = 1;
-                % end
+                this.RepeatCounterX = this.RepeatCounterX + 1;
+                this.stopMyTimer(Enums.RepeatTimerXE);
+                if(this.RepeatCounterX > 5)
+                    set(this.RepeatTimerX, 'Period', 0.05);
+                else
+                    set(this.RepeatTimerX, 'Period', 0.5);
+                end
+                this.startMyTimer(Enums.RepeatTimerXE);
+                this.JoyControls(Enums.Right) = 1;
             elseif (X > 80)
-                % if (this.ControlsIRQ(Enums.Left))
-                    this.RepeatCounterX = this.RepeatCounterX + 1;
-                    this.stopMyTimer(Enums.RepeatTimerXE);
-                    if(this.RepeatCounterX > 5)
-                        set(this.RepeatTimerX, 'Period', 0.05);
-                    else
-                        set(this.RepeatTimerX, 'Period', 0.5);
-                    end
-                    this.startMyTimer(Enums.RepeatTimerXE);
-                    this.JoyControls(Enums.Left) = 1;
-                % else
-                %     this.JoyControls(Enums.Left) = 1;
-                % end
+                this.RepeatCounterX = this.RepeatCounterX + 1;
+                this.stopMyTimer(Enums.RepeatTimerXE);
+                if(this.RepeatCounterX > 5)
+                    set(this.RepeatTimerX, 'Period', 0.05);
+                else
+                    set(this.RepeatTimerX, 'Period', 0.5);
+                end
+                this.startMyTimer(Enums.RepeatTimerXE);
+                this.JoyControls(Enums.Left) = 1;
             end
-
-            % if (~this.GameFlag)
-            %     this.newControls(this.JoyControls)
-            % end
-
         end
 
         function joystickRepeatX(this)
@@ -743,58 +690,6 @@ classdef UI < handle
                 this.sendJoystickDatatoHtml();
             end
         end
-        
-        % function newControls(this, data)
-        % 
-        %     if data(Enums.BtnEnter)
-        %         if (this.GameChosen == 0)
-        %             this.GameChosen = 1;
-        %             this.sendJoystickDatatoHtml();
-        %             this.ColumnIDX = 1;
-        %         else
-        %             this.ButtonPressed = 1;
-        %         end
-        %     end
-        % 
-        %     if data(Enums.BtnExit)
-        %         if this.GameChosen == 1
-        %             this.GameChosen = 0;
-        %             this.ColumnIDX = 0;
-        %         end
-        %     end
-        % 
-        %     if (this.ColumnIDX == 0)
-        %         if data(Enums.Up)
-        %             this.GameIDX = this.GameIDX - 1;
-        %             if this.GameIDX <= 1
-        %                 this.GameIDX = 1;
-        %             end
-        %         elseif data(Enums.Down)
-        %             this.GameIDX = this.GameIDX + 1;
-        %             if this.GameIDX >= length(this.GameNames_arr)
-        %                 this.GameIDX = length(this.GameNames_arr);
-        %             end
-        %         end
-        %     end
-        % 
-        %     if (this.GameChosen)
-        %         if data(Enums.Right)
-        %             this.ColumnIDX = this.ColumnIDX + 1;
-        %             if this.ColumnIDX >= 2
-        %                 this.ColumnIDX = 2;
-        %             end
-        %         elseif data(Enums.Left)
-        %             this.ColumnIDX = this.ColumnIDX - 1;
-        %             if this.ColumnIDX <= 1
-        %                 this.ColumnIDX = 1;
-        %             end
-        %         end
-        %     end
-        % 
-        %     this.sendJoystickDatatoHtml();
-        %     this.ButtonPressed = 0;
-        % 
-        % end
 
         function sendJoystickDatatoHtml(this)
 
