@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>MatlabUI</title>
+    <style>
+        body {
+            background-color: #87CEEB;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            position: relative;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: absolute;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .content-container {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        .image-container {
+            width: 300px;
+            height: 200px;
+            border: 5px solid #000;
+            background-color: #ffffff;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .buttons-container {
+            display: flex;
+            width: 100%;
+            justify-content: center;
+        }
+
+        button {
+            background-color: #A4778B;
+            border: 5px solid #000;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .cloud {
+            width: 80px;
+            height: 40px;
+            background-color: #ffffff;
+            border-radius: 50px;
+            position: absolute;
+            z-index: -1;
+        }
+
+        .cloud:nth-child(1) {
+            top: 50px;
+            left: -80px;
+            animation: moveClouds 10s linear infinite 0s;
+        }
+
+        .cloud:nth-child(2) {
+            top: 120px;
+            left: -120px;
+            animation: moveClouds 10s linear infinite 3s;
+        }
+
+        .cloud:nth-child(3) {
+            top: 200px;
+            left: -80px;
+            animation: moveClouds 10s linear infinite 6s;
+        }
+
+        .cloud:nth-child(4) {
+            top: 270px;
+            left: -100px;
+            animation: moveClouds 10s linear infinite 9s;
+        }
+
+        .cloud:nth-child(5) {
+            top: 350px;
+            left: -80px;
+            animation: moveClouds 10s linear infinite 12s;
+        }
+
+        .cloud:nth-child(6) {
+            top: 450px;
+            left: -100px;
+            animation: moveClouds 10s linear infinite 15s;
+        }
+
+        .cloud:nth-child(7) {
+            top: 500px;
+            left: -80px;
+            animation: moveClouds 10s linear infinite 18s;
+        }
+
+        @keyframes moveClouds {
+            0% {
+                left: -80px;
+            }
+
+            100% {
+                left: 100%;
+            }
+        }
+
+        select {
+            height: 230px;
+            width: 200px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: transparent transparent;
+            text-align: left;
+            border: 5px solid #000;
+            background-color: #464D77;
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 20px;
+            margin-right: 20px;
+        }
+
+        button, select {
+            font-family: 'VT323', monospace;
+        }
+
+        .bracket {
+            position: relative;
+            padding-left: 20px; /* Adjust as needed */
+        }
+
+        /* Add the bracket:before pseudo-element */
+        .bracket:before {
+            content: "[";
+            position: absolute;
+            left: 0;
+            font-size: 20px; /* Adjust as needed */
+            color: #C1666B; /* Adjust as needed */
+        }
+
+        @keyframes pulsate {
+            0% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .pulsating {
+            animation: pulsate 1s infinite;
+        }
+
+        .qr-code-container {
+            width: 200px;
+            height: 200px;
+            border: 5px solid #000;
+            background-color: #ffffff;
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 20px;
+            /* Adjusted styles for bottom-right positioning */
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+        }
+
+        .console-container {
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-end;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            padding: 10px;
+        }
+
+        textarea {
+            padding: 8px;
+            font-size: 14px;
+            border: 2px solid #000; /* Added border style */
+            border-radius: 5px;
+            margin-right: 10px;
+            overflow-y: scroll; /* Added scroll for multiline input */
+            height: 100px;
+            width: 600px;
+            resize: none;
+
+        }
+
+        .name-container {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            text-align: right;
+            
+        }
+
+        .name-container textarea {
+            padding: 8px;
+            font-size: 14px;
+            border: 2px solid #000;
+            border-radius: 5px;
+            margin-top: 5px;
+            width: 210px;
+            height: 40px;
+            overflow: hidden;
+            resize: none;
+        }
+
+
+
+
+    </style>
+    <script type="text/javascript">      
+
+        function setup(htmlComponent) { 
+            
+            const whiteRectangle = document.querySelector('.image-container');
+            const rectPosition = whiteRectangle.getBoundingClientRect();
+            const rectWidth = whiteRectangle.offsetWidth;
+            const rectHeight = whiteRectangle.offsetHeight;
+
+            const QRRectangle = document.querySelector('.qr-code-container');
+            const QRPosition = QRRectangle.getBoundingClientRect();
+            const QRWidth = QRRectangle.offsetWidth;
+            const QRHeight = QRRectangle.offsetHeight;
+
+            const rectangleData = {
+                width: rectWidth,
+                height: rectHeight,
+                bottom: window.innerHeight - rectPosition.bottom,
+                left: rectPosition.left,
+                widthQR: QRWidth,
+                heightQR: QRHeight,
+                bottomQR: window.innerHeight - QRPosition.bottom,
+                leftQR: QRPosition.left
+            };
+            const jsonPicture = JSON.stringify(rectangleData);
+
+            htmlComponent.sendEventToMATLAB('PosOfPicture', jsonPicture);
+
+            
+            let buttonStart = document.getElementById("ButtonStart");
+            buttonStart.addEventListener("click", function(event) {
+                htmlComponent.sendEventToMATLAB("ButtonStartClicked");
+            });
+            let buttonExit = document.getElementById("ButtonExit");
+            buttonExit.addEventListener("click", function(event) {
+                htmlComponent.sendEventToMATLAB("ButtonExitClicked");
+            });
+            const selectElement = document.getElementById('mySelect');
+            selectElement.addEventListener('change', function(event) {
+                const selectedOptionName = event.target.options[event.target.selectedIndex].textContent;
+                htmlComponent.sendEventToMATLAB('ListBoxValueChanged', selectedOptionName);
+            });
+
+            htmlComponent.addEventListener("ValueChanged", function(event) {
+                
+                const parsedData = JSON.parse(event.Data);
+                
+                const numberOfElements = parseInt(parsedData[0], 10);
+                const textValues = parsedData.slice(1, numberOfElements + 1);
+                const selectElement = document.getElementById('mySelect');
+
+                selectElement.innerHTML = '';
+
+                for (let i = 0; i <= numberOfElements; i++) {
+                    const option = document.createElement('option');
+                    option.value = `option${i}`;
+                    option.textContent = textValues[i];
+                    selectElement.appendChild(option);
+                }
+                
+            });
+
+            let previousGameIDX = null;
+            let previousGameChosen = null;
+
+            htmlComponent.addEventListener("JoystickData", function(event) {
+
+                const startButton = document.getElementById("ButtonStart");
+                const exitButton = document.getElementById("ButtonExit");
+
+                const selectElement = document.getElementById('mySelect');
+                const options = selectElement.options;
+
+                const parsedData = JSON.parse(event.Data);
+
+                const GameIDX = parseInt(parsedData[0], 10);
+                const ColumnIDX = parseInt(parsedData[1], 10);
+                const GameChosen = parseInt(parsedData[2], 10);
+                const ButtonPressed = parseInt(parsedData[3], 10);
+
+                if (GameChosen == 1) {
+                    const options = selectElement.options;
+                    for (let i = 0; i < options.length; i++) {
+                        options[i].classList.remove('pulsating');
+                    }
+                    switch(ColumnIDX) {
+                        case 1:
+                            startButton.style.backgroundColor = "#806D40";
+                            exitButton.style.backgroundColor = "#A4778B";
+                            break;
+                        case 2:
+                            startButton.style.backgroundColor = "#A4778B";
+                            exitButton.style.backgroundColor = "#806D40";
+                            break;
+                    }
+
+                    if (ButtonPressed == 1) {
+                        switch(ColumnIDX) {
+                            case 1:
+                                startButton.click();
+                                break;
+                            case 2:
+                                exitButton.click();
+                                break;
+                        }
+                    }
+                    
+                }
+                if (GameChosen !== previousGameChosen) {
+                    startButton.style.backgroundColor = "#A4778B";
+                    exitButton.style.backgroundColor = "#A4778B";
+
+                    const selectedOption = options[GameIDX - 1];
+                    if (selectedOption) {
+                        selectedOption.classList.add('pulsating', 'bracket');
+                    }
+
+                    previousGameChosen = GameChosen;
+                }
+                if (GameIDX !== previousGameIDX && GameChosen == 0) {
+
+                const options = selectElement.options;
+                for (let i = 0; i < options.length; i++) {
+                    options[i].classList.remove('pulsating', 'bracket');
+                }
+
+                const selectedOption = options[GameIDX - 1];
+                if (selectedOption) {
+                    selectedOption.classList.add('pulsating', 'bracket');
+                }
+
+                selectElement.selectedIndex = GameIDX - 1;
+                selectElement.dispatchEvent(new Event('change'));
+
+                previousGameIDX = GameIDX;
+                }
+
+            });
+
+            htmlComponent.addEventListener("ConsoleMessage", function(event) {
+                const messageFromMatlab = event.Data;
+                displayMessageFromMatlab(messageFromMatlab);
+            });
+
+            htmlComponent.addEventListener("AuthorChanged", function(event) {
+                document.getElementById("name").value = 'Author:\n' + event.Data;
+            });
+
+        }
+
+        function displayMessageFromMatlab(message) {
+            const consoleInput = document.getElementById("console-input");
+            consoleInput.value += message + '\n'; // Append the new message and a newline
+            consoleInput.scrollTop = consoleInput.scrollHeight; // Scroll to the bottom
+            // You can do additional processing/display here if needed
+        }
+     </script>
+</head>
+
+<body>
+    <div class="cloud"></div>
+    <div class="cloud"></div>
+    <div class="cloud"></div>
+    <div class="cloud"></div>
+    <div class="cloud"></div>
+    <div class="cloud"></div>
+    <div class="cloud"></div>
+
+    <div class="container">
+        <div class="content-container">
+            <div class="listbox-container">
+                <select id="mySelect" multiple size="5">
+                    <option id="option1" value="option1">Option 1</option>
+                    <option id="option2" value="option2">Option 2</option>
+                    <option id="option3" value="option3">Option 3</option>
+                    <option id="option4" value="option4">Option 4</option>
+                    <option id="option5" value="option5">Option 5</option>
+                </select>
+            </div>
+            <div class="image-container"></div>
+        </div>
+        <div class="buttons-container">
+            <button id="ButtonStart">Start</button>
+            <button id="ButtonExit">Exit</button>
+        </div>
+    </div>
+    <div class="qr-code-container" id="qr-code-container"></div>
+    <div class="name-container">
+        <textarea id="name" readonly>Author:</textarea>
+    </div>
+    <div class="console-container">
+        <textarea id="console-input" placeholder="Console output" readonly></textarea>
+    </div>
+</body>
+
+</html>

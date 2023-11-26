@@ -1,0 +1,8 @@
+(module "USB-B-MINI" (layer F.Cu) (tedit 5B0D3C36)
+  (arc (start -1.60000 -3.42500) (end -1.60000 -3.52500) (mid -1.55000 -3.47500) (layer F.SilkS) (width 0.025) )
+  (arc (start -1.60000 -3.52500) (end -1.60000 -3.42500) (mid -1.65000 -3.47500) (layer F.SilkS) (width 0.025) )
+  (fp_line (start -4.00000 6.27500) (end -4.00000 -2.72500) (layer F.CrtYd) (width 0.1))
+  (fp_line (start -4.00000 6.27500) (end 4.00000 6.27500) (layer F.CrtYd) (width 0.1))
+  (fp_line (start 4.00000 6.27500) (end 4.00000 -2.72500) (layer F.CrtYd) (width 0.1))
+  (fp_line (start -4.00000 -2.72500) (end 4.00000 -2.72500) (layer F.CrtYd) (width 0.1))
+)
