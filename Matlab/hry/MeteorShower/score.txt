@@ -1,2 +1,8 @@
 Name,Score
-Petr,140
+Petr,280
+,40
+,10
+,10
+Barisek,10
+,10
+Ahoj,0

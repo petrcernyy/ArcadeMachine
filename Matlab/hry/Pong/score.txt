@@ -1,2 +1,5 @@
 Name,Score
 Petr,66
+,3
+,2
+,1

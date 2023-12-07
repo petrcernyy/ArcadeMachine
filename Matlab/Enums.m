@@ -7,6 +7,9 @@ classdef Enums < uint8
         BtnEnter (5)
         BtnExit (6)
 
+        Data(8)
+        User(9)
+
 
         FoldersTimerE (11)
         SteppingTimerE (12)

@@ -42,6 +42,7 @@ classdef Pong < handle
 
         function runFrame(this)
 
+
             if(this.GameStart)
                 this.Ball.update();
                 this.edgesCheck();
