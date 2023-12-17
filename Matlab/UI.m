@@ -50,6 +50,7 @@ classdef UI < handle
         function backToMainMenu(this)
 
             this.stopMyTimer(Enums.SteppingTimerE);
+            this.stopMyTimer(Enums.WatchDogTimerE);
             this.startMyTimer(Enums.FoldersTimerE);
 
             this.stopSoundtrack();
@@ -64,9 +65,13 @@ classdef UI < handle
             this.ColumnIDX = 0;
             this.GameChosen = 0; 
             this.sendJoystickDatatoHtml();
-            this.startMyTimer(Enums.FoldersTimerE);
             this.playSoundtrack('menu_music.mp3');
             this.GameFlag = 0;
+
+            this.WatchDogTimerCounter = 0;
+            this.returnVal = 0;
+            this.startParallelTask();
+            this.startMyTimer(Enums.WatchDogTimerE);        
 
         end
 
@@ -142,12 +147,6 @@ classdef UI < handle
 
         end
 
-        % function WatchDogElapsed(this)
-        % 
-        %     % this.stopMyTimer(Enums.WatchDogTimerE);
-        %     this.backToMainMenu();
-        % 
-        % end
     end
 
     properties (SetAccess = private)
@@ -158,16 +157,16 @@ classdef UI < handle
         Player
         ID
 
-        Pool
-
         Fig_Main
 
         FoldersTimer
         WatchDogTimer
         WatchDogTimerCounter = 0
-        workerQueueConstant
+        workerQueueConstant1
+        workerQueueConstant2
         workerQueueClient
         future
+        returnVal = 0
 
         GamesPath
 
@@ -276,17 +275,11 @@ classdef UI < handle
                                  'TimerFcn', @(~,~) this.joystickRepeatX);
             this.RepeatTimerY = timer('ExecutionMode', 'fixedRate', 'Period',0.1, ...
                                  'TimerFcn', @(~,~) this.joystickRepeatY);
-            this.WatchDogTimer = timer('ExecutionMode', 'fixedRate', 'Period', 5, ...
-                                'TimerFcn', @(~,~) this.WatchDogUpdate, 'TasksToExecute', 10);
-            % if isempty(gcp())
-            %     parpool('local', 1);
-            % end
-            % 
-            % this.workerQueueConstant = parallel.pool.Constant(@parallel.pool.PollableDataQueue);
-            % this.workerQueueClient = fetchOutputs(parfeval(@(x) x.Value, 1, this.workerQueueConstant));
-            % this.future = parfeval(@WatchDogTimer, 1, this.workerQueueConstant);
-            % 
-            % this.startMyTimer(Enums.WatchDogTimerE);
+            this.WatchDogTimer = timer('ExecutionMode', 'fixedRate', 'Period', 2, ...
+                                'TimerFcn', @(~,~) this.WatchDogUpdate);
+            
+            this.startParallelTask();
+            this.startMyTimer(Enums.WatchDogTimerE);
 
             waitfor(this.Loading);
             set(this.Image, 'Position', this.Pos_Image);
@@ -298,12 +291,36 @@ classdef UI < handle
     
         end
 
-        % function WatchDogUpdate(this)
-        % 
-        %     this.WatchDogTimerCounter = this.WatchDogTimerCounter + 1;
-        %     send(this.workerQueueClient, this.WatchDogTimerCounter);
-        % 
-        % end
+        function startParallelTask(this)
+
+            this.workerQueueConstant1 = parallel.pool.DataQueue;
+            afterEach(this.workerQueueConstant1, @this.ReturnValueUpdate);
+            this.workerQueueConstant2 = parallel.pool.PollableDataQueue;
+            this.future = parfeval(@WatchDogTimer,0,this.workerQueueConstant1,this.workerQueueConstant2);
+            this.workerQueueClient = poll(this.workerQueueConstant2,10);
+
+        end
+
+        function WatchDogUpdate(this)
+
+            if (this.WatchDogTimerCounter == 1)
+                this.WatchDogTimerCounter = 0;
+            elseif (this.WatchDogTimerCounter == 0)
+                this.WatchDogTimerCounter = 1;
+            end
+            send(this.workerQueueClient, this.WatchDogTimerCounter);
+            sprintf("Counter = %d \n Return = %d \n ------------------------------", this.WatchDogTimerCounter, this.returnVal)
+            if (this.WatchDogTimerCounter == this.returnVal)
+                system('taskkill /F /IM MATLAB.exe')
+            end
+
+        end
+
+        function ReturnValueUpdate(this, data)
+            
+            this.returnVal = data;
+
+        end
 
         function checkForNewFolder(this)
 
@@ -465,14 +482,7 @@ classdef UI < handle
 
         function stepGame(this)
             try
-                % fun = @()this.Game.runFrame;
-                % fut = parfeval(this.Pool, fun, 0, this.Game);
-                % wait(fut,'finished', 10);
-                % hfun = @() displaynum(this);
-                % adxlConst = parallel.pool.Constant(@this.displaynum)
-                % fut = parfeval(this.Pool, @WatchDogTimer, 0);
                 this.Game.runFrame();
-
             catch e
                 ErrorMessage = jsonencode(e.message);
                 sendEventToHTMLSource(this.Html, "ConsoleMessage", ErrorMessage);
@@ -481,11 +491,6 @@ classdef UI < handle
 
         end
 
-        % function WatchDogStart(this)
-        % 
-        %     this.startMyTimer(Enums.WatchDogTimerE);
-        % 
-        % end
         % -----------------------------------------------------------------
         %  ------------Controls--------------------------------------
 
@@ -832,8 +837,10 @@ classdef UI < handle
             this.SerialReader.device = [];
             this.stopMyTimer(Enums.SteppingTimerE);
             this.stopMyTimer(Enums.FoldersTimerE);
+            this.stopMyTimer(Enums.WatchDogTimerE);
             this.stopSoundtrack();
-            % cancel(this.future);
+            cancel(this.future);
+            delete(gcp('nocreate'))
             delete(this.Fig_Main);
 
         end

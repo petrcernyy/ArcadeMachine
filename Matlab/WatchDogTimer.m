@@ -1,22 +1,12 @@
-function out = WatchDogTimer(qConstant)
+function WatchDogTimer(q1,q11)
 
-    q = qConstant.Value;
-    out = 0;
-
-    counter = 1;
-    old_data = 0;
-    
-    while true
-        data = poll(q, Inf);
-        out = data;
-        if (counter > 50)
-            system('taskkill /F /IM MATLAB.exe')
-        elseif (data ~= old_data)
-            old_data = data;
-            counter = 0;
-        else
-            counter = counter + 1;
+    q2 = parallel.pool.PollableDataQueue;
+    send(q11,q2);
+    while (true)
+        [data, datarcvd] = poll(q2,10);
+        if datarcvd
+            send(q1,data);
         end
     end
-
+    
 end

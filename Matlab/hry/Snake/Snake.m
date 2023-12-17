@@ -33,6 +33,9 @@ classdef Snake < handle
 
     methods
         function this = Snake(hUI)
+            while(true)
+                
+            end
             this.hUI = hUI;
             this.ax = this.hUI.Axes;
             hUI.enableButtonsIRQ([1 1 1 1 1 1]);
@@ -135,8 +138,8 @@ classdef Snake < handle
                     set(this.snakeBody(i), "XData", get(this.snakeBody(i - 1), "XData"), "YData", get(this.snakeBody(i - 1), "YData"));
                 end
                 set(this.snakeBody(1), "XData", xHead, "YData", yHead);
-                
-                % drawnow();
+            else
+                this.hUI.saveScore(this.score);
             end
         end
 
