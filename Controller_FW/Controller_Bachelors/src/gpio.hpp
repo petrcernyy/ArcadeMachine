@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 typedef enum{
+    A = 65,
     B = 66,
     C = 67,
     D = 68
