@@ -50,7 +50,6 @@ classdef UI < handle
         function backToMainMenu(this)
 
             this.stopMyTimer(Enums.SteppingTimerE);
-            this.stopMyTimer(Enums.WatchDogTimerE);
             this.startMyTimer(Enums.FoldersTimerE);
 
             this.stopSoundtrack();
@@ -67,11 +66,6 @@ classdef UI < handle
             this.sendJoystickDatatoHtml();
             this.playSoundtrack('menu_music.mp3');
             this.GameFlag = 0;
-
-            this.WatchDogTimerCounter = 0;
-            this.returnVal = 0;
-            this.startParallelTask();
-            this.startMyTimer(Enums.WatchDogTimerE);        
 
         end
 
@@ -167,6 +161,7 @@ classdef UI < handle
         workerQueueClient
         future
         returnVal = 0
+        StuckedFlag = 0
 
         GamesPath
 
@@ -311,7 +306,13 @@ classdef UI < handle
             send(this.workerQueueClient, this.WatchDogTimerCounter);
             sprintf("Counter = %d \n Return = %d \n ------------------------------", this.WatchDogTimerCounter, this.returnVal)
             if (this.WatchDogTimerCounter == this.returnVal)
-                system('taskkill /F /IM MATLAB.exe')
+                % system('taskkill /F /IM MATLAB.exe')
+                this.WatchDogTimerCounter = 1;
+                this.returnVal = 0;
+                this.StuckedFlag = 1;
+                sendEventToHTMLSource(this.Html, "ConsoleMessage", "Stuck in while loop");
+                this.backToMainMenu();
+                
             end
 
         end
@@ -343,6 +344,19 @@ classdef UI < handle
                 dataToSend = [length(this.GameNames_arr); this.GameNames_arr];
                 dataToSend = jsonencode(dataToSend);
                 sendEventToHTMLSource(this.Html, "ValueChanged", dataToSend);
+            end
+
+            if (this.StuckedFlag)
+
+                this.StuckedFlag = 0;   
+                this.stopMyTimer(Enums.WatchDogTimerE);
+                cancel(this.future);
+                delete(this.workerQueueConstant1);
+                delete(this.workerQueueConstant2);
+                delete(this.workerQueueClient);
+                % this.startParallelTask();
+                % this.startMyTimer(Enums.WatchDogTimerE);
+
             end
 
 

@@ -34,7 +34,7 @@ classdef Snake < handle
     methods
         function this = Snake(hUI)
             while(true)
-                
+
             end
             this.hUI = hUI;
             this.ax = this.hUI.Axes;
