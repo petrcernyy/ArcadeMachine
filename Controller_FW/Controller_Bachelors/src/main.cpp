@@ -1,18 +1,26 @@
 #include <Arduino.h>
+#include "gpio.hpp"
 
-// put function declarations here:
-int myFunction(int, int);
+void setup(void){}
 
-void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
-}
 
-void loop() {
-  // put your main code here, to run repeatedly:
-}
+void loop(void){
 
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+  gpio_pin ledka = { .pin = 5, .port = B };
+  gpio_set_mode(&ledka, mode_enum::Output);
+
+  gpio_pin button = { .pin = 6, .port = D };
+  gpio_set_mode(&button, mode_enum::Input);
+
+  while(1){
+
+    if (gpio_read(&button) == 1){
+      gpio_write(&ledka, 1);
+    }
+    else{
+      gpio_write(&ledka, 0);
+    }
+
+    delay(100);
+  }
 }
