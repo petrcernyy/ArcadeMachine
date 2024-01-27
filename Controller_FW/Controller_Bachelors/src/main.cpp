@@ -1,6 +1,10 @@
 #include <Arduino.h>
+#include <MFRC522.h>
+#include <string.h>
+#include <stdio.h>
 #include "gpio.hpp"
 #include "adc.hpp"
+#include "uart.hpp"
 
 void setup(void){}
 
@@ -20,11 +24,12 @@ void loop(void){
   gpio_set_mode(&JoystickY, mode_enum::Input);
 
   adc_init();
-
-  Serial.begin(9600);
+  uart_init();
 
   uint16_t JoyXVal;
   uint16_t JoyYVal;
+
+  char message[12];
 
 
   while(1){
@@ -39,9 +44,10 @@ void loop(void){
     JoyXVal = adc_read(&JoystickX);
     JoyYVal = adc_read(&JoystickY);
 
-    Serial.print(JoyXVal);
-    Serial.print("||");
-    Serial.println(JoyYVal);
+    sprintf(message, "%04d||%04d\n", JoyXVal, JoyYVal);
+
+    uart_transmit_string(message);
+
 
     delay(100);
   }
