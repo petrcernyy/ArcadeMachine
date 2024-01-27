@@ -8,8 +8,27 @@
 
 void setup(void){}
 
+char receive[10];
+int i;
+char rec_flag;
+
+ISR (USART_RX_vect){
+
+  unsigned char rec = uart_receive_char();
+  if (rec == '\n'){
+    i = 0;
+    rec_flag = 1;
+  }
+  else{
+    receive[i++] = rec;
+  }
+
+}
 
 void loop(void){
+
+  i = 0;
+  rec_flag = 0;
 
   gpio_pin ledka = { .pin = 5, .port = B };
   gpio_set_mode(&ledka, mode_enum::Output);
@@ -23,8 +42,12 @@ void loop(void){
   gpio_pin JoystickY = { .pin = 0, .port = C};
   gpio_set_mode(&JoystickY, mode_enum::Input);
 
+  SREG = (0 << 7);
+
   adc_init();
   uart_init();
+
+  SREG = (1 << 7);
 
   uint16_t JoyXVal;
   uint16_t JoyYVal;
@@ -46,7 +69,10 @@ void loop(void){
 
     sprintf(message, "%04d||%04d\n", JoyXVal, JoyYVal);
 
-    uart_transmit_string(message);
+    if (rec_flag){
+      rec_flag = 0;
+      uart_transmit_string(message);
+    }
 
 
     delay(100);
