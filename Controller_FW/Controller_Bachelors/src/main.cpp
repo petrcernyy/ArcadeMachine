@@ -7,7 +7,20 @@
 
 void setup(void){}
 
+#define RISINGEDGE 0b00111111
+
+typedef struct{
+  int ButtonEnterRead;
+  int ButtonExitRead;
+}Buttons_t;
+
+volatile Buttons_t buttons = {0};
+
+gpio_pin button = { .pin = 6, .port = D };
+
 char receive[10];
+char nuidChar[16];
+char buttonMess[6];
 int i;
 char rec_flag;
 
@@ -24,6 +37,26 @@ ISR (USART_RX_vect){
 
 }
 
+ISR(TIMER2_COMPA_vect){
+
+    buttons.ButtonEnterRead<<=1;
+    buttons.ButtonEnterRead |= gpio_read(&button);
+
+    if (buttons.ButtonEnterRead == RISINGEDGE){
+      sprintf(buttonMess, "2|%d||%d", 1, 0);
+      uart_transmit_string(buttonMess);
+    }
+
+    buttons.ButtonExitRead<<=1;
+    buttons.ButtonExitRead |= gpio_read(&button);
+
+    if (buttons.ButtonExitRead == RISINGEDGE){
+      sprintf(buttonMess, "2|%d||%d", 0, 1);
+      uart_transmit_string(buttonMess);
+    }
+
+}
+
 void loop(void){
 
   MFRC522 rfid(10, 5);
@@ -32,13 +65,11 @@ void loop(void){
   rfid.PCD_Init(); // Init MFRC522 
 
   uint8_t nuidPICC[4];
-  char nuidChar[16];
 
   i = 0;
   rec_flag = 0;
   int index = 0;
 
-  gpio_pin button = { .pin = 6, .port = D };
   gpio_set_mode(&button, mode_enum::Input);
 
   gpio_pin JoystickX = { .pin = 1, .port = C};
@@ -52,33 +83,31 @@ void loop(void){
   adc_init();
   uart_init();
 
+  TCCR2A = 0; 
+  TCCR2B = 0;
+  OCR2A = 100;
+  TCCR2A |= (1 << WGM21);     // CTC mode on
+  TCCR2B |= (1 << CS21);
+  TIMSK2 |= (1 << OCIE2A);    // timer compare intrupt
+
   SREG = (1 << 7);
 
   uint16_t JoyXVal;
   uint16_t JoyYVal;
 
-  char message[12];
-  char card_mess1[50] = "A new card has been detected";
-  char card_mess2[50] = "Card read previously";
+  char JoyValues[14];
 
 
   while(1){
 
-    if (gpio_read(&button) == 1){
-      uart_transmit_string(nuidChar);
-    }
-    else{
-      
-    }
-
     JoyXVal = adc_read(&JoystickX);
     JoyYVal = adc_read(&JoystickY);
 
-    sprintf(message, "%04d||%04d", JoyXVal, JoyYVal);
+    sprintf(JoyValues, "1|%04d||%04d", JoyXVal, JoyYVal);
 
     if (rec_flag){
       rec_flag = 0;
-      uart_transmit_string(message);
+      uart_transmit_string(JoyValues);
     }
 
     if ((rfid.PICC_IsNewCardPresent()) && (rfid.PICC_ReadCardSerial())){
@@ -87,17 +116,22 @@ void loop(void){
         rfid.uid.uidByte[1] != nuidPICC[1] || 
         rfid.uid.uidByte[2] != nuidPICC[2] || 
         rfid.uid.uidByte[3] != nuidPICC[3] ) {
-        uart_transmit_string(card_mess1);
 
         for (byte i = 0; i < 4; i++) {
           nuidPICC[i] = rfid.uid.uidByte[i];
           index += sprintf(&nuidChar[index], "%d", nuidPICC[i]);
         }
         index = 0;
-
-
+        char help[] = "3|";
+        strcat(help, nuidChar);
+        uart_transmit_string(help);
       }
-      else uart_transmit_string(card_mess2);
+      else{
+        for (byte i = 0; i < 4; i++) {
+          nuidPICC[i] = 0;
+        }
+        nuidChar[0] = '\0';
+      }
     }
 
     rfid.PICC_HaltA();
