@@ -28,6 +28,7 @@ void uart_transmit_string(char* data){
     for(i = 0; i < strlen(data); i++){
         uart_transmit_char(data[i]);
     }
+    uart_transmit_char('\n');
 }
 
 unsigned char uart_receive_char(void){
