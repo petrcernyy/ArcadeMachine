@@ -110,24 +110,16 @@ void loop(void){
     JoyYVal = adc_read(&JoystickY);
     JoyYVal = ((JoyYVal)/double(1023))*(double)100;
 
-    //if (rec_flag){
-      rec_flag = 0;
-      switch(card_read){
-        case(0):
-          sprintf(Values, "8|%03d||%03d||%01d||%01d", JoyXVal, JoyYVal, buttons.ButtonEnterState, buttons.ButtonExitState);
-          buttons.ButtonEnterState = 0;
-          buttons.ButtonExitState = 0;
-          uart_transmit_string(Values);
-          break;
-        case(1):
-          card_read = 0;
-          uart_transmit_string(help);
-      }
-    //}
-
     if ((rfid.PICC_IsNewCardPresent()) && (rfid.PICC_ReadCardSerial())){
-      card_read = 1;
-      if (rfid.uid.uidByte[0] != nuidPICC[0] || 
+
+        for (byte i = 0; i < 4; i++) {
+          nuidPICC[i] = rfid.uid.uidByte[i];
+          index += sprintf(&nuidChar[index], "%d", nuidPICC[i]);
+        }
+        index = 0; 
+        strcat(help, nuidChar);
+        card_read = 1;
+      /*if (rfid.uid.uidByte[0] != nuidPICC[0] || 
         rfid.uid.uidByte[1] != nuidPICC[1] || 
         rfid.uid.uidByte[2] != nuidPICC[2] || 
         rfid.uid.uidByte[3] != nuidPICC[3] ) {
@@ -138,7 +130,7 @@ void loop(void){
         }
         index = 0; 
         strcat(help, nuidChar);
-        uart_transmit_string(help);
+        card_read = 1;
       }
       else{
         for (byte i = 0; i < 4; i++) {
@@ -146,11 +138,27 @@ void loop(void){
         }
         nuidChar[0] = '\0';
         help[2] = '\0';
-      }
+      }*/
     }
 
     rfid.PICC_HaltA();
     rfid.PCD_StopCrypto1();
+
+    if(card_read){
+      card_read = 0;
+      uart_transmit_string(help);
+      for (byte i = 0; i < 4; i++) {
+        nuidPICC[i] = 0;
+      }
+      nuidChar[0] = '\0';
+      help[2] = '\0';
+    }
+    else{
+      sprintf(Values, "8|%03d||%03d||%01d||%01d", JoyXVal, JoyYVal, buttons.ButtonEnterState, buttons.ButtonExitState);
+      buttons.ButtonEnterState = 0;
+      buttons.ButtonExitState = 0;
+      uart_transmit_string(Values);
+    }
 
     delay(50);
   }

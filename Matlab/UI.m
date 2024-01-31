@@ -848,8 +848,8 @@ classdef UI < handle
                     this.Player = database.Name{idx};
                     sendEventToHTMLSource(this.Html, "ConsoleMessage", "Welcome " + this.Player);
                 else
-                    this.Player = [];
                     sendEventToHTMLSource(this.Html, "ConsoleMessage", "Goodbye " + this.Player);
+                    this.Player = [];
                 end
             else
                 this.ID = data;

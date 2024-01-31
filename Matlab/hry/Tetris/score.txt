@@ -1,4 +1,4 @@
 Name,Score
-Petr,100
+Petr,200
 ,0
 ,0
