@@ -146,7 +146,6 @@ void loop(void){
         }
         nuidChar[0] = '\0';
         help[2] = '\0';
-        uart_transmit_string(help);
       }
     }
 

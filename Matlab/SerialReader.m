@@ -1,6 +1,7 @@
 classdef SerialReader
     properties (SetAccess = private)
         data
+        flag = 1
     end
 
     properties (Access = public)
@@ -28,9 +29,11 @@ classdef SerialReader
             this.data = readline(this.device);
             chardata = convertStringsToChars(this.data);
             if (str2double(chardata(1)) == Enums.Data)
+                this.flag = 1;
                 this.myUI.receiveSerialData(chardata(2:end));
-            elseif (str2double(chardata(1)) == Enums.User)
-                this.myUI.dabataseNewData(chardata(2:end));
+            elseif (str2double(chardata(1)) == Enums.User) && (this.flag == 1)
+                this.flag = 0;
+                this.myUI.dabataseData(chardata(3:end));
             end
 
         end

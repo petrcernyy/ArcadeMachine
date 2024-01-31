@@ -147,6 +147,12 @@ classdef UI < handle
 
         end
 
+        function dabataseData(this, data)
+
+            this.databaseNewData(data);
+
+        end
+
     end
 
     properties (SetAccess = private)
@@ -838,8 +844,13 @@ classdef UI < handle
             database = readtable(fullfile(databaseFolder, 'database.txt'));
             idx = find(all(ismember(num2str(database.ID),data),2),1);
             if(~(isempty(idx)))
-                this.Player = database.Name{idx};
-                sendEventToHTMLSource(this.Html, "ConsoleMessage", this.Player);
+                if (isempty(this.Player))
+                    this.Player = database.Name{idx};
+                    sendEventToHTMLSource(this.Html, "ConsoleMessage", "Welcome " + this.Player);
+                else
+                    this.Player = [];
+                    sendEventToHTMLSource(this.Html, "ConsoleMessage", "Goodbye " + this.Player);
+                end
             else
                 this.ID = data;
                 this.createNewUser()
