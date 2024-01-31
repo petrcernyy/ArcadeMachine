@@ -50,7 +50,7 @@ classdef UI < handle
         function backToMainMenu(this)
 
             this.stopMyTimer(Enums.SteppingTimerE);
-            this.stopMyTimer(Enums.WatchDogTimerE);
+            % this.stopMyTimer(Enums.WatchDogTimerE);
             this.startMyTimer(Enums.FoldersTimerE);
 
             this.stopSoundtrack();
@@ -67,11 +67,11 @@ classdef UI < handle
             this.sendJoystickDatatoHtml();
             this.playSoundtrack('menu_music.mp3');
             this.GameFlag = 0;
-
-            this.WatchDogTimerCounter = 0;
-            this.returnVal = 0;
-            this.startParallelTask();
-            this.startMyTimer(Enums.WatchDogTimerE);        
+            % 
+            % this.WatchDogTimerCounter = 0;
+            % this.returnVal = 0;
+            % this.startParallelTask();
+            % this.startMyTimer(Enums.WatchDogTimerE);        
 
         end
 
@@ -275,11 +275,11 @@ classdef UI < handle
                                  'TimerFcn', @(~,~) this.joystickRepeatX);
             this.RepeatTimerY = timer('ExecutionMode', 'fixedRate', 'Period',0.1, ...
                                  'TimerFcn', @(~,~) this.joystickRepeatY);
-            this.WatchDogTimer = timer('ExecutionMode', 'fixedRate', 'Period', 2, ...
-                                'TimerFcn', @(~,~) this.WatchDogUpdate);
-            
-            this.startParallelTask();
-            this.startMyTimer(Enums.WatchDogTimerE);
+            % this.WatchDogTimer = timer('ExecutionMode', 'fixedRate', 'Period', 2, ...
+            %                     'TimerFcn', @(~,~) this.WatchDogUpdate);
+            % 
+            % this.startParallelTask();
+            % this.startMyTimer(Enums.WatchDogTimerE);
 
             waitfor(this.Loading);
             set(this.Image, 'Position', this.Pos_Image);
@@ -291,36 +291,36 @@ classdef UI < handle
     
         end
 
-        function startParallelTask(this)
-
-            this.workerQueueConstant1 = parallel.pool.DataQueue;
-            afterEach(this.workerQueueConstant1, @this.ReturnValueUpdate);
-            this.workerQueueConstant2 = parallel.pool.PollableDataQueue;
-            this.future = parfeval(@WatchDogTimer,0,this.workerQueueConstant1,this.workerQueueConstant2);
-            this.workerQueueClient = poll(this.workerQueueConstant2,10);
-
-        end
-
-        function WatchDogUpdate(this)
-
-            if (this.WatchDogTimerCounter == 1)
-                this.WatchDogTimerCounter = 0;
-            elseif (this.WatchDogTimerCounter == 0)
-                this.WatchDogTimerCounter = 1;
-            end
-            send(this.workerQueueClient, this.WatchDogTimerCounter);
-            sprintf("Counter = %d \n Return = %d \n ------------------------------", this.WatchDogTimerCounter, this.returnVal)
-            if (this.WatchDogTimerCounter == this.returnVal)
-                system('taskkill /F /IM MATLAB.exe')
-            end
-
-        end
-
-        function ReturnValueUpdate(this, data)
-            
-            this.returnVal = data;
-
-        end
+        % function startParallelTask(this)
+        % 
+        %     this.workerQueueConstant1 = parallel.pool.DataQueue;
+        %     afterEach(this.workerQueueConstant1, @this.ReturnValueUpdate);
+        %     this.workerQueueConstant2 = parallel.pool.PollableDataQueue;
+        %     this.future = parfeval(@WatchDogTimer,0,this.workerQueueConstant1,this.workerQueueConstant2);
+        %     this.workerQueueClient = poll(this.workerQueueConstant2,10);
+        % 
+        % end
+        % 
+        % function WatchDogUpdate(this)
+        % 
+        %     if (this.WatchDogTimerCounter == 1)
+        %         this.WatchDogTimerCounter = 0;
+        %     elseif (this.WatchDogTimerCounter == 0)
+        %         this.WatchDogTimerCounter = 1;
+        %     end
+        %     send(this.workerQueueClient, this.WatchDogTimerCounter);
+        %     sprintf("Counter = %d \n Return = %d \n ------------------------------", this.WatchDogTimerCounter, this.returnVal)
+        %     if (this.WatchDogTimerCounter == this.returnVal)
+        %         system('taskkill /F /IM MATLAB.exe')
+        %     end
+        % 
+        % end
+        % 
+        % function ReturnValueUpdate(this, data)
+        % 
+        %     this.returnVal = data;
+        % 
+        % end
 
         function checkForNewFolder(this)
 
@@ -554,9 +554,9 @@ classdef UI < handle
 
         function serialNewData(this, data)
 
-            X = str2double(data([3,4,5]));
-            Y = str2double(data([9,10,11]));
-            btn1 = str2double(data(13));
+            X = str2double(data([2,3,4]));
+            Y = str2double(data([7,8,9]));
+            btn1 = str2double(data(12));
             btn2 = str2double(data(15));
 
             if (btn1)
@@ -593,20 +593,28 @@ classdef UI < handle
                 this.stopMyTimer(Enums.RepeatTimerYE);
                 if(this.RepeatCounterY > 5)
                     set(this.RepeatTimerY, 'Period', 0.05);
-                else
-                    set(this.RepeatTimerY, 'Period', 0.5);
+                    this.startMyTimer(Enums.RepeatTimerYE);
+                elseif(this.RepeatCounterY == 1)
+                    if (~this.GameFlag)
+                        this.BtnUpPressed();
+                    elseif (this.ControlsIRQ(Enums.Up))
+                        this.Game.BtnUpPressed();
+                    end
                 end
-                this.startMyTimer(Enums.RepeatTimerYE);
                 this.JoyControls(Enums.Up) = 1;
             elseif (Y < 20)
                 this.RepeatCounterY = this.RepeatCounterY + 1;
                 this.stopMyTimer(Enums.RepeatTimerYE);
                 if(this.RepeatCounterY > 5)
                     set(this.RepeatTimerY, 'Period', 0.05);
-                else
-                    set(this.RepeatTimerY, 'Period', 0.5);
+                    this.startMyTimer(Enums.RepeatTimerYE);
+                elseif(this.RepeatCounterY == 1)
+                    if (~this.GameFlag)
+                        this.BtnDownPressed();
+                    elseif (this.ControlsIRQ(Enums.Up))
+                        this.Game.BtnDownPressed();
+                    end
                 end
-                this.startMyTimer(Enums.RepeatTimerYE);
                 this.JoyControls(Enums.Down) = 1;
             end
 
@@ -620,21 +628,29 @@ classdef UI < handle
                 this.stopMyTimer(Enums.RepeatTimerXE);
                 if(this.RepeatCounterX > 5)
                     set(this.RepeatTimerX, 'Period', 0.05);
-                else
-                    set(this.RepeatTimerX, 'Period', 0.5);
+                    this.startMyTimer(Enums.RepeatTimerXE);
+                elseif(this.RepeatCounterX == 1)
+                    if (~this.GameFlag)
+                        this.BtnLeftPressed();
+                    elseif (this.ControlsIRQ(Enums.Up))
+                        this.Game.BtnLeftPressed();
+                    end
                 end
-                this.startMyTimer(Enums.RepeatTimerXE);
-                this.JoyControls(Enums.Right) = 1;
+                this.JoyControls(Enums.Left) = 1;
             elseif (X > 80)
                 this.RepeatCounterX = this.RepeatCounterX + 1;
                 this.stopMyTimer(Enums.RepeatTimerXE);
-                if(this.RepeatCounterX > 5)
+                if(this.RepeatCounterX > 50)
                     set(this.RepeatTimerX, 'Period', 0.05);
-                else
-                    set(this.RepeatTimerX, 'Period', 0.5);
+                    this.startMyTimer(Enums.RepeatTimerXE);
+                elseif(this.RepeatCounterX == 1)
+                    if (~this.GameFlag)
+                        this.BtnRightPressed();
+                    elseif (this.ControlsIRQ(Enums.Up))
+                        this.Game.BtnRightPressed();
+                    end
                 end
-                this.startMyTimer(Enums.RepeatTimerXE);
-                this.JoyControls(Enums.Left) = 1;
+                this.JoyControls(Enums.Right) = 1;
             end
         end
 
@@ -670,21 +686,23 @@ classdef UI < handle
                 if (~this.GameFlag)
                     this.BtnUpPressed();
                 elseif (this.ControlsIRQ(Enums.Up))
-                    if (this.MultiplayerFlag)
-                        this.Game.JoyUpPressed();
-                    else
-                        this.Game.BtnUpPressed();
-                    end
+                    this.Game.BtnUpPressed();
+                    % if (this.MultiplayerFlag)
+                    %     this.Game.JoyUpPressed();
+                    % else
+                    %     this.Game.BtnUpPressed();
+                    % end
                 end
             elseif (this.JoyControls(Enums.Down))
                 if (~this.GameFlag)
                     this.BtnDownPressed();
                 elseif (this.ControlsIRQ(Enums.Down))
-                    if (this.MultiplayerFlag)
-                        this.Game.JoyDownPressed();
-                    else
-                        this.Game.BtnDownPressed();
-                    end
+                    this.Game.BtnDownPressed();
+                    % if (this.MultiplayerFlag)
+                    %     this.Game.JoyDownPressed();
+                    % else
+                    %     this.Game.BtnDownPressed();
+                    % end
                 end
             end
 
@@ -837,10 +855,10 @@ classdef UI < handle
             this.SerialReader.device = [];
             this.stopMyTimer(Enums.SteppingTimerE);
             this.stopMyTimer(Enums.FoldersTimerE);
-            this.stopMyTimer(Enums.WatchDogTimerE);
+            % this.stopMyTimer(Enums.WatchDogTimerE);
             this.stopSoundtrack();
-            cancel(this.future);
-            delete(gcp('nocreate'))
+            % cancel(this.future);
+            % delete(gcp('nocreate'))
             delete(this.Fig_Main);
 
         end

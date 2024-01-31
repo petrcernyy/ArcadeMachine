@@ -47,11 +47,11 @@ classdef Pong < handle
                 this.Ball.update();
                 this.edgesCheck();
     
-                % if(this.PadlleL.Y+this.PadlleL.Height/20 < this.Ball.Y)
-                %     this.PadlleL.moveUp();
-                % elseif(this.PadlleL.Y-this.PadlleL.Height/20 > this.Ball.Y)
-                %     this.PadlleL.moveDown();
-                % end
+                if(this.PadlleL.Y+this.PadlleL.Height/20 < this.Ball.Y)
+                    this.PadlleL.moveUp();
+                elseif(this.PadlleL.Y-this.PadlleL.Height/20 > this.Ball.Y)
+                    this.PadlleL.moveDown();
+                end
     
                 this.Ball.plotBall();
                 this.PadlleL.plotPadlle();
