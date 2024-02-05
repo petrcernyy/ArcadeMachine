@@ -38,5 +38,41 @@ classdef SerialReader
 
         end
 
+        function toggleBlueLed(this, ~, ~)
+
+            writeline(this.device, "3");
+
+        end
+
+        function onBlueLed(this, ~, ~)
+
+            writeline(this.device, "4");
+
+        end
+
+        function offBlueLed(this, ~, ~)
+
+            writeline(this.device, "5");
+
+        end
+
+        function toggleRedLed(this, ~, ~)
+
+            writeline(this.device, "0");
+
+        end
+
+        function onRedLed(this, ~, ~)
+
+            writeline(this.device, "1");
+
+        end
+
+        function offRedLed(this, ~, ~)
+
+            writeline(this.device, "2");
+
+        end
+
     end
 end

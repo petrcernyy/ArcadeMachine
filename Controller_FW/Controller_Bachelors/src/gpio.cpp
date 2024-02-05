@@ -11,7 +11,7 @@ void gpio_set_mode(gpio_pin *pin, mode_enum mode)
             DDRC |= (mode << pin->pin);
             break;
         case port_enum::D:
-            DDRB |= (mode << pin->pin);
+            DDRD |= (mode << pin->pin);
             break;
     }
 }

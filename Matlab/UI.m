@@ -123,6 +123,12 @@ classdef UI < handle
             play(this.Sound);
 
         end
+
+        function toggleRedLED(this)
+
+            this.SerialReader.toggleRedLed();
+
+        end
         
         % Enables multiplayer mode, meaning data from joystick and keys
         % will not be united and there are going to be addition function
@@ -205,6 +211,8 @@ classdef UI < handle
 
         JoyControls = [0 0 0 0 0 0]
         ControlsIRQ = [0 0 0 0 0 0]
+
+        LedTimer
         
 
         % Counters and flags
@@ -281,6 +289,10 @@ classdef UI < handle
                                  'TimerFcn', @(~,~) this.joystickRepeatX);
             this.RepeatTimerY = timer('ExecutionMode', 'fixedRate', 'Period',0.1, ...
                                  'TimerFcn', @(~,~) this.joystickRepeatY);
+            this.LedTimer = timer('ExecutionMode', 'fixedRate', 'Period',1, ...
+                                 'TimerFcn', @(~,~) this.toggleLED);
+            this.startMyTimer(Enums.LedTimerE);
+    
             % this.WatchDogTimer = timer('ExecutionMode', 'fixedRate', 'Period', 2, ...
             %                     'TimerFcn', @(~,~) this.WatchDogUpdate);
             % 
@@ -295,6 +307,12 @@ classdef UI < handle
             set(this.Image, 'Visible', 'on');
             set(this.QR, 'Visible', 'on'); 
     
+        end
+
+        function toggleLED(this, ~, ~)
+
+            this.SerialReader.toggleBlueLed();
+
         end
 
         % function startParallelTask(this)
@@ -553,7 +571,7 @@ classdef UI < handle
                     end
 
                 case 'q'
-                    this.databaseNewData('238672');
+                    this.SerialReader.setBlueLed();
                     
             end
         end
@@ -624,12 +642,12 @@ classdef UI < handle
                 this.JoyControls(Enums.Down) = 1;
             end
 
-            if (X > 30 && X < 70)
+            if (X > 50 && X < 70)
                 this.JoyControls([Enums.Left, Enums.Right]) = 0;
                 this.RepeatCounterX = 0;
                 this.stopMyTimer(Enums.RepeatTimerXE);
             end
-            if (X < 20)
+            if (X < 40)
                 this.RepeatCounterX = this.RepeatCounterX + 1;
                 this.stopMyTimer(Enums.RepeatTimerXE);
                 if(this.RepeatCounterX > 5)
@@ -789,7 +807,7 @@ classdef UI < handle
                 this.Player = this.newUserWindowName.String;
                 this.saveNewUserName();
                 set(this.newUserWindowPanel, 'Visible', 'off');
-                sendEventToHTMLSource(this.Html, "ConsoleMessage", this.Player);
+                sendEventToHTMLSource(this.Html, "ConsoleMessage", "Welcome " + this.Player);
                 set(this.QR, 'Visible', 'on');
                 this.CreatingUser = 0;
                 focus(this.Fig_Main);
@@ -839,21 +857,44 @@ classdef UI < handle
 
         function databaseNewData(this, data)
 
+
             databaseFolder = fullfile(pwd,'database');
-            % fileattrib(fullfile(databaseFolder, 'score.txt'), '+w');
+            fileattrib(fullfile(databaseFolder, 'database.txt'), '+w');
             database = readtable(fullfile(databaseFolder, 'database.txt'));
-            idx = find(all(ismember(num2str(database.ID),data),2),1);
-            if(~(isempty(idx)))
-                if (isempty(this.Player))
+            idx = find(strcmp(strrep(string(num2str(database.ID)),' ',''), data),1);
+            if (~(isempty(idx)))
+                if (~isempty(this.Player) && (strcmp(this.ID, data) == 0))
+                    sendEventToHTMLSource(this.Html, "ConsoleMessage", "Goodbye " + this.Player);
+                    this.Player = [];
                     this.Player = database.Name{idx};
+                    this.ID = data;
+                    this.stopMyTimer(Enums.LedTimerE);
+                    this.SerialReader.onBlueLed();
                     sendEventToHTMLSource(this.Html, "ConsoleMessage", "Welcome " + this.Player);
+                elseif (isempty(this.Player))
+                    this.Player = database.Name{idx};
+                    this.ID = data;
+                    sendEventToHTMLSource(this.Html, "ConsoleMessage", "Welcome " + this.Player);
+                    this.stopMyTimer(Enums.LedTimerE);
+                    this.SerialReader.onBlueLed();
+                else
+                    sendEventToHTMLSource(this.Html, "ConsoleMessage", "Goodbye " + this.Player);
+                    this.ID = [];
+                    this.Player = [];
+                    this.startMyTimer(Enums.LedTimerE);
+                end
+            else
+                if (isempty(this.Player))
+                    this.ID = data;
+                    this.createNewUser()
                 else
                     sendEventToHTMLSource(this.Html, "ConsoleMessage", "Goodbye " + this.Player);
                     this.Player = [];
+                    this.ID = data;
+                    this.createNewUser()
                 end
-            else
-                this.ID = data;
-                this.createNewUser()
+                this.stopMyTimer(Enums.LedTimerE);
+                this.SerialReader.onBlueLed();
             end
 
         end
@@ -902,6 +943,10 @@ classdef UI < handle
                     if(strcmp(this.WatchDogTimer.Running, 'off'))
                         start(this.WatchDogTimer);
                     end
+                case Enums.LedTimerE
+                    if(strcmp(this.LedTimer.Running, 'off'))
+                        start(this.LedTimer);
+                    end
             end
         end
 
@@ -926,6 +971,10 @@ classdef UI < handle
                 case Enums.WatchDogTimerE
                     if(strcmp(this.WatchDogTimer.Running, 'on'))
                         stop(this.WatchDogTimer);
+                    end
+                case Enums.LedTimerE
+                    if(strcmp(this.LedTimer.Running, 'on'))
+                        stop(this.LedTimer);
                     end
             end
         end

@@ -1,2 +1,2 @@
 Name,Score
-,0
+Barisek,2

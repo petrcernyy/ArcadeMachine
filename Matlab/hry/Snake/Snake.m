@@ -94,6 +94,7 @@ classdef Snake < handle
             % check if head has reached target
             if xHead == this.targetX && yHead == this.targetY
                 % update score
+                this.hUI.toggleRedLED();
                 this.score = this.score + 1;
                 clc;
                 disp("Score: " + this.score);
@@ -142,6 +143,7 @@ classdef Snake < handle
         end
 
         function BtnExitPressed(this)
+            this.hUI.saveScore(this.score);
             this.hUI.backToMainMenu();
         end
 

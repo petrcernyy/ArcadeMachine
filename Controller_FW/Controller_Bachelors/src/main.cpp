@@ -9,6 +9,8 @@ void setup(void){}
 
 #define RISINGEDGE 0b00111111
 
+void led_control(char* index);
+
 typedef struct{
   int ButtonEnterRead;
   int ButtonEnterState;
@@ -21,13 +23,16 @@ volatile Buttons_t buttons = {0};
 gpio_pin buttonEnt = { .pin = 0, .port = B };
 gpio_pin buttonExit = { .pin = 1, .port = B };
 
+gpio_pin red_led = { .pin = 4, .port = D};
+gpio_pin blue_led = { .pin = 7, .port = D};
+
 char receive[10];
 char nuidChar[16];
 char buttonMess[6];
 int i;
 char rec_flag;
 
-/*
+
 ISR (USART_RX_vect){
 
   unsigned char rec = uart_receive_char();
@@ -39,7 +44,7 @@ ISR (USART_RX_vect){
     receive[i++] = rec;
   }
 
-}*/
+}
 
 ISR(TIMER2_COMPA_vect){
 
@@ -83,6 +88,10 @@ void loop(void){
   gpio_pin JoystickY = { .pin = 3, .port = C};
   gpio_set_mode(&JoystickY, mode_enum::Input);
 
+  gpio_set_mode(&red_led, mode_enum::Output);
+
+  gpio_set_mode(&blue_led, mode_enum::Output);
+
   SREG = (0 << 7);
 
   adc_init();
@@ -105,6 +114,12 @@ void loop(void){
 
   while(1){
 
+    if(rec_flag)
+    {
+      rec_flag = 0;
+      led_control(receive);
+    }
+
     JoyXVal = adc_read(&JoystickX);
     JoyXVal = ((JoyXVal)/double(1023))*(double)100;
     JoyYVal = adc_read(&JoystickY);
@@ -119,26 +134,6 @@ void loop(void){
         index = 0; 
         strcat(help, nuidChar);
         card_read = 1;
-      /*if (rfid.uid.uidByte[0] != nuidPICC[0] || 
-        rfid.uid.uidByte[1] != nuidPICC[1] || 
-        rfid.uid.uidByte[2] != nuidPICC[2] || 
-        rfid.uid.uidByte[3] != nuidPICC[3] ) {
-
-        for (byte i = 0; i < 4; i++) {
-          nuidPICC[i] = rfid.uid.uidByte[i];
-          index += sprintf(&nuidChar[index], "%d", nuidPICC[i]);
-        }
-        index = 0; 
-        strcat(help, nuidChar);
-        card_read = 1;
-      }
-      else{
-        for (byte i = 0; i < 4; i++) {
-          nuidPICC[i] = 0;
-        }
-        nuidChar[0] = '\0';
-        help[2] = '\0';
-      }*/
     }
 
     rfid.PICC_HaltA();
@@ -161,5 +156,44 @@ void loop(void){
     }
 
     delay(50);
+  }
+}
+
+void led_control(char* index)
+{
+  switch(*index)
+  {
+    case('0'):
+      if(gpio_read(&red_led))
+      {
+        gpio_write(&red_led, 0);
+      }
+      else
+      {
+        gpio_write(&red_led, 1);
+      }
+      break;
+    case('1'):
+      gpio_write(&red_led, 1);
+      break;
+    case('2'):
+      gpio_write(&red_led, 0);
+      break;
+    case('3'):
+      if(gpio_read(&blue_led))
+      {
+        gpio_write(&blue_led, 0);
+      }
+      else
+      {
+        gpio_write(&blue_led, 1);
+      }
+      break;
+    case('4'):
+      gpio_write(&blue_led, 1);
+      break;
+    case('5'):
+      gpio_write(&blue_led, 0);
+      break;
   }
 }
