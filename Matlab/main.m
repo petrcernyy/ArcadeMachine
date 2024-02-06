@@ -1,6 +1,6 @@
 clc, clear
 
-% parpool('local', 1);
+parpool('local', 1);
 
 myUI = UI.createUIClassInstance();
 

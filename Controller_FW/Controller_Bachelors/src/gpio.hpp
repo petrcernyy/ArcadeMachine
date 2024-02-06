@@ -2,9 +2,9 @@
 #define GPIO_H
 
 #include <stdint.h>
+#include "uart.hpp"
 
 typedef enum{
-    A = 65,
     B = 66,
     C = 67,
     D = 68
@@ -16,13 +16,13 @@ typedef enum{
 }mode_enum;
 
 typedef struct{
-    uint8_t pin;
+    int pin;
     port_enum port;
 }gpio_pin;
 
-void gpio_set_mode(gpio_pin *pin, mode_enum mode);
-void gpio_write(gpio_pin *pin, int Value);
-int gpio_read(gpio_pin *pin);
+void gpio_set_mode(const gpio_pin *pin, mode_enum mode);
+void gpio_write(const gpio_pin *pin, int Value);
+int gpio_read(const gpio_pin *pin);
 
 
 #endif

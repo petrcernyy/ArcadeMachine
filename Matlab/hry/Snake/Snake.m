@@ -38,7 +38,7 @@ classdef Snake < handle
             this.ax = this.hUI.Axes;
             hUI.enableButtonsIRQ([1 1 1 1 1 1]);
             hUI.setTimerFreq(0.1);
-            set(this.ax, "Units", "pixels", "Position", [0, 0, this.windowXLimit, this.windowYLimit],...
+            set(this.ax, "Units", "pixels", "Position", [100, 20, this.windowXLimit, this.windowYLimit],...
                 "XLim", [0, this.xLimit], "YLim", [0, this.yLimit], "XTick", [],"YTick", []);
             this.targetX = 0;
             this.targetY = 0;
@@ -94,6 +94,7 @@ classdef Snake < handle
             % check if head has reached target
             if xHead == this.targetX && yHead == this.targetY
                 % update score
+                this.hUI.toggleRedLED();
                 this.score = this.score + 1;
                 clc;
                 disp("Score: " + this.score);
@@ -142,6 +143,7 @@ classdef Snake < handle
         end
 
         function BtnExitPressed(this)
+            this.hUI.saveScore(this.score);
             this.hUI.backToMainMenu();
         end
 
