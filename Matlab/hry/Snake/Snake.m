@@ -38,7 +38,7 @@ classdef Snake < handle
             this.ax = this.hUI.Axes;
             hUI.enableButtonsIRQ([1 1 1 1 1 1]);
             hUI.setTimerFreq(0.1);
-            set(this.ax, "Units", "pixels", "Position", [0, 0, this.windowXLimit, this.windowYLimit],...
+            set(this.ax, "Units", "pixels", "Position", [100, 20, this.windowXLimit, this.windowYLimit],...
                 "XLim", [0, this.xLimit], "YLim", [0, this.yLimit], "XTick", [],"YTick", []);
             this.targetX = 0;
             this.targetY = 0;

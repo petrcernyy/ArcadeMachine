@@ -20,11 +20,11 @@ typedef struct{
 
 volatile Buttons_t buttons = {0};
 
-gpio_pin buttonEnt = { .pin = 0, .port = B };
-gpio_pin buttonExit = { .pin = 1, .port = B };
+const gpio_pin buttonEnt = { .pin = 0, .port = B };
+const gpio_pin buttonExit = { .pin = 1, .port = B };
 
-gpio_pin red_led = { .pin = 4, .port = D};
-gpio_pin blue_led = { .pin = 7, .port = D};
+const gpio_pin red_led = { .pin = 4, .port = D };
+const gpio_pin blue_led = { .pin = 7, .port = D };
 
 char receive[10];
 char nuidChar[16];
@@ -82,10 +82,10 @@ void loop(void){
   gpio_set_mode(&buttonEnt, mode_enum::Input);
   gpio_set_mode(&buttonExit, mode_enum::Output);
 
-  gpio_pin JoystickX = { .pin = 2, .port = C};
+  const gpio_pin JoystickX = { .pin = 2, .port = C};
   gpio_set_mode(&JoystickX, mode_enum::Input);
 
-  gpio_pin JoystickY = { .pin = 3, .port = C};
+  const gpio_pin JoystickY = { .pin = 3, .port = C};
   gpio_set_mode(&JoystickY, mode_enum::Input);
 
   gpio_set_mode(&red_led, mode_enum::Output);

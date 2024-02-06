@@ -67,7 +67,7 @@ classdef UI < handle
             this.sendJoystickDatatoHtml();
             this.playSoundtrack('menu_music.mp3');
             this.GameFlag = 0;
-            % 
+
             % this.WatchDogTimerCounter = 0;
             % this.returnVal = 0;
             % this.startParallelTask();
@@ -293,11 +293,11 @@ classdef UI < handle
                                  'TimerFcn', @(~,~) this.toggleLED);
             this.startMyTimer(Enums.LedTimerE);
     
-            % this.WatchDogTimer = timer('ExecutionMode', 'fixedRate', 'Period', 2, ...
-            %                     'TimerFcn', @(~,~) this.WatchDogUpdate);
-            % 
-            % this.startParallelTask();
-            % this.startMyTimer(Enums.WatchDogTimerE);
+            this.WatchDogTimer = timer('ExecutionMode', 'fixedRate', 'Period', 2, ...
+                                'TimerFcn', @(~,~) this.WatchDogUpdate);
+
+            this.startParallelTask();
+            this.startMyTimer(Enums.WatchDogTimerE);
 
             waitfor(this.Loading);
             set(this.Image, 'Position', this.Pos_Image);
@@ -315,36 +315,36 @@ classdef UI < handle
 
         end
 
-        % function startParallelTask(this)
-        % 
-        %     this.workerQueueConstant1 = parallel.pool.DataQueue;
-        %     afterEach(this.workerQueueConstant1, @this.ReturnValueUpdate);
-        %     this.workerQueueConstant2 = parallel.pool.PollableDataQueue;
-        %     this.future = parfeval(@WatchDogTimer,0,this.workerQueueConstant1,this.workerQueueConstant2);
-        %     this.workerQueueClient = poll(this.workerQueueConstant2,10);
-        % 
-        % end
-        % 
-        % function WatchDogUpdate(this)
-        % 
-        %     if (this.WatchDogTimerCounter == 1)
-        %         this.WatchDogTimerCounter = 0;
-        %     elseif (this.WatchDogTimerCounter == 0)
-        %         this.WatchDogTimerCounter = 1;
-        %     end
-        %     send(this.workerQueueClient, this.WatchDogTimerCounter);
-        %     sprintf("Counter = %d \n Return = %d \n ------------------------------", this.WatchDogTimerCounter, this.returnVal)
-        %     if (this.WatchDogTimerCounter == this.returnVal)
-        %         system('taskkill /F /IM MATLAB.exe')
-        %     end
-        % 
-        % end
-        % 
-        % function ReturnValueUpdate(this, data)
-        % 
-        %     this.returnVal = data;
-        % 
-        % end
+        function startParallelTask(this)
+
+            this.workerQueueConstant1 = parallel.pool.DataQueue;
+            afterEach(this.workerQueueConstant1, @this.ReturnValueUpdate);
+            this.workerQueueConstant2 = parallel.pool.PollableDataQueue;
+            this.future = parfeval(@WatchDogTimer,0,this.workerQueueConstant1,this.workerQueueConstant2);
+            this.workerQueueClient = poll(this.workerQueueConstant2,10);
+
+        end
+
+        function WatchDogUpdate(this)
+
+            if (this.WatchDogTimerCounter == 1)
+                this.WatchDogTimerCounter = 0;
+            elseif (this.WatchDogTimerCounter == 0)
+                this.WatchDogTimerCounter = 1;
+            end
+            send(this.workerQueueClient, this.WatchDogTimerCounter);
+            % sprintf("Counter = %d \n Return = %d \n ------------------------------", this.WatchDogTimerCounter, this.returnVal)
+            if (this.WatchDogTimerCounter == this.returnVal)
+                system('taskkill /F /IM MATLAB.exe')
+            end
+
+        end
+
+        function ReturnValueUpdate(this, data)
+
+            this.returnVal = data;
+
+        end
 
         function checkForNewFolder(this)
 
@@ -907,10 +907,11 @@ classdef UI < handle
             this.SerialReader.device = [];
             this.stopMyTimer(Enums.SteppingTimerE);
             this.stopMyTimer(Enums.FoldersTimerE);
-            % this.stopMyTimer(Enums.WatchDogTimerE);
+            this.stopMyTimer(Enums.WatchDogTimerE);
+            this.stopMyTimer(Enums.LedTimerE);
             this.stopSoundtrack();
-            % cancel(this.future);
-            % delete(gcp('nocreate'))
+            cancel(this.future);
+            delete(gcp('nocreate'))
             delete(this.Fig_Main);
 
         end

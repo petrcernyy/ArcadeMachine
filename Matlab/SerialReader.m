@@ -27,7 +27,7 @@ classdef SerialReader
 
         function readSerialData(this, ~, ~)
             this.data = readline(this.device);
-            chardata = convertStringsToChars(this.data);
+            chardata = convertStringsToChars(this.data)
             if (str2double(chardata(1)) == Enums.Data)
                 this.flag = 1;
                 this.myUI.receiveSerialData(chardata(2:end));

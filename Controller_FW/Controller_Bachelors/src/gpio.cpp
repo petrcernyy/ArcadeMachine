@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include "gpio.hpp"
 
-void gpio_set_mode(gpio_pin *pin, mode_enum mode)
+void gpio_set_mode(const gpio_pin *pin, mode_enum mode)
 {
     switch(pin->port){
         case port_enum::B:
@@ -16,8 +16,8 @@ void gpio_set_mode(gpio_pin *pin, mode_enum mode)
     }
 }
 
-void gpio_write(gpio_pin *pin, int Value)
-{
+void gpio_write(const gpio_pin *pin, int Value)
+{ 
     switch(pin->port){
         case port_enum::B:
             if (Value){
@@ -46,7 +46,7 @@ void gpio_write(gpio_pin *pin, int Value)
     }
 }
 
-int gpio_read(gpio_pin *pin){
+int gpio_read(const gpio_pin *pin){
 
     uint8_t val;
 
