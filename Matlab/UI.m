@@ -334,9 +334,9 @@ classdef UI < handle
             end
             send(this.workerQueueClient, this.WatchDogTimerCounter);
             % sprintf("Counter = %d \n Return = %d \n ------------------------------", this.WatchDogTimerCounter, this.returnVal)
-            if (this.WatchDogTimerCounter == this.returnVal)
-                system('taskkill /F /IM MATLAB.exe')
-            end
+            % if (this.WatchDogTimerCounter == this.returnVal)
+            %     system('taskkill /F /IM MATLAB.exe')
+            % end
 
         end
 
