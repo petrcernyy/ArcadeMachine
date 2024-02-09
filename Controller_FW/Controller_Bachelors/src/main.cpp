@@ -1,13 +1,42 @@
 #include <string.h>
 #include <stdio.h>
-#include <MFRC522.h>
+#include "mymfrc.hpp"
 #include "gpio.hpp"
 #include "adc.hpp"
 #include "uart.hpp"
 
 void setup(void){}
+void loop(void)
+{
 
-#define RISINGEDGE 0b00111111
+  SPI.begin();
+  Serial.begin(9600);
+
+  MFRC_t mfrc = { .CE = 10, .RST = 5};
+
+  MFRC_Init(&mfrc);
+
+  while(1)
+  {
+
+    NewCard(&mfrc);
+
+    Serial.println(mfrc.data_buffer);
+
+    delay(50);
+
+
+  }
+
+
+
+}
+
+/*
+
+void setup(void){}
+
+#define RISINGEDGE 0b00000111
 
 void led_control(char* index);
 
@@ -137,7 +166,6 @@ void loop(void){
     }
 
     rfid.PICC_HaltA();
-    rfid.PCD_StopCrypto1();
 
     if(card_read){
       card_read = 0;
@@ -196,4 +224,4 @@ void led_control(char* index)
       gpio_write(&blue_led, 0);
       break;
   }
-}
+}*/
