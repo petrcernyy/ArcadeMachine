@@ -1,13 +1,13 @@
 #include <string.h>
 #include <stdio.h>
-#include <MFRC522.h>
+#include "mfrc.hpp"
 #include "gpio.hpp"
 #include "adc.hpp"
 #include "uart.hpp"
 
 void setup(void){}
 
-#define RISINGEDGE 0b00111111
+#define RISINGEDGE 0b00000111
 
 void led_control(char* index);
 
@@ -137,7 +137,6 @@ void loop(void){
     }
 
     rfid.PICC_HaltA();
-    rfid.PCD_StopCrypto1();
 
     if(card_read){
       card_read = 0;
