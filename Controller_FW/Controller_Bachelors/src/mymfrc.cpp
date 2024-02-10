@@ -114,7 +114,7 @@ void mfrc_init(MFRC_t *mfrc)
 	
 	mfrc_write_register(mfrc, TxASKReg, 0x40);		// Default 0x00. Force a 100 % ASK modulation independent of the ModGsPReg register setting
 	mfrc_write_register(mfrc, ModeReg, 0x3D);		// Default 0x3F. Set the preset value for the CRC coprocessor for the CalcCRC command to 0x6363 (ISO 14443-3 part 6.2.4)
-	mfrc_antennaOn();	
+	mfrc_antennaOn(mfrc);	
 }
 
 void mfrc_reset(MFRC_t *mfrc)
@@ -129,4 +129,82 @@ void mfrc_antennaOn(MFRC_t *mfrc)
     if ((value & 0x03) != 0x03) {
         mfrc_write_register(mfrc, TxControlReg, value | 0x03);
     }
+}
+
+void mfrc_to_card(MFRC_t *mfrc, uint8_t *sendData, uint8_t sendDataLen, uint8_t *responseData, uint8_t shortFrame)
+{
+
+	mfrc_write_register(mfrc, CommandReg, Idle);			// Stop any active command.
+	mfrc_write_register(mfrc, ComIrqReg, 0x7F);					// Clear all seven interrupt request bits
+	mfrc_write_register(mfrc, FIFOLevelReg, 0x80);				// FlushBuffer = 1, FIFO initialization
+	mfrc_write_register(mfrc, FIFODataReg, sendDataLen, sendData);	// Write sendData to the FIFO
+	if (shortFrame){
+		mfrc_write_register(mfrc, BitFramingReg, 0x07);
+	}
+	else{
+		mfrc_write_register(mfrc, BitFramingReg, 0x00);
+	}
+	mfrc_write_register(mfrc, CommandReg, Transceive);				// Execute the command
+	mfrc_set_bitmask(mfrc, BitFramingReg, 0x80);
+
+	const uint32_t deadline = millis() + 36;
+	bool completed = false;
+
+	do {
+		byte n = mfrc_read_register(mfrc, ComIrqReg);	// ComIrqReg[7..0] bits are: Set1 TxIRq RxIRq IdleIRq HiAlertIRq LoAlertIRq ErrIRq TimerIRq
+		if (n & 0x30) {					// One of the interrupts that signal success has been set.
+			completed = true;
+			break;
+		}
+		if (n & 0x01) {						// Timer interrupt - nothing received in 25ms
+			return;
+		}
+		yield();
+	}
+	while (static_cast<uint32_t> (millis()) < deadline);
+
+	uint8_t n = mfrc_read_register(mfrc, FIFOLevelReg);	
+	mfrc_read_register(mfrc, FIFODataReg, n, responseData, 0);	// Get received data from FIFO
+
+}
+
+void mfrc_request_A(MFRC_t *mfrc)
+{
+	uint8_t ATQA[2];
+
+	// Reset baud rates
+	mfrc_write_register(mfrc, TxModeReg, 0x00);
+	mfrc_write_register(mfrc, RxModeReg, 0x00);
+	// Reset ModWidthReg
+	mfrc_write_register(mfrc, ModWidthReg, 0x26);
+	mfrc_clear_bitmask(mfrc, CollReg, 0x80);		// ValuesAfterColl=1 => Bits received after collision are cleared.
+
+	uint8_t command = REQA;
+	mfrc_to_card(mfrc, &command, 1, ATQA, 1);
+
+}
+
+void mfrc_read_UID(MFRC_t *mfrc)
+{
+
+	uint8_t buffer[9];
+
+	mfrc_clear_bitmask(mfrc, CollReg, 0x80);
+	buffer[0] = SEL_CL1;
+
+	uint8_t index			= 2;					// Number of whole bytes: SEL + NVB + UIDs
+	buffer[1]		= 0x20;	// NVB - Number of Valid Bits
+	uint8_t bufferUsed		= index;
+	// Store response in the unused part of buffer
+	uint8_t *responseBuffer;
+	responseBuffer	= &buffer[index];
+	mfrc_write_register(mfrc, BitFramingReg, 0x00);	// RxAlign = BitFramingReg[6..4]. TxLastBits = BitFramingReg[2..0]
+	
+	// Transmit the buffer and receive the response.
+	mfrc_to_card(mfrc, buffer, bufferUsed, responseBuffer, 0);
+	Serial.print(buffer[2]);
+	Serial.print(buffer[3]);
+	Serial.print(buffer[4]);
+	Serial.println(buffer[5]);
+
 }

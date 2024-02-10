@@ -1,6 +1,6 @@
 #include <string.h>
 #include <stdio.h>
-#include "mfrc.hpp"
+#include "mymfrc.hpp"
 #include "gpio.hpp"
 #include "adc.hpp"
 #include "uart.hpp"
@@ -9,29 +9,32 @@ void setup(void){};
 
 void loop(void){
 
-  uint8_t status, cardstr[16+1];
-  uint8_t UID[5];
 
   Serial.begin(9600);
   SPI.begin();
-  MFRC522 rfid(10, 5);  
-  rfid.PCD_Init();
+
+  MFRC_t mfrc = { .CE = 10, .RST = 5};
+
+  mfrc_init(&mfrc);
+
 
   while(1)
   {
     
+    mfrc_request_A(&mfrc);
+    mfrc_read_UID(&mfrc);
   //status = MFRC522_Request(PICC_REQIDL, cardstr);
   //Serial.println(status);
   //status = MFRC522_Anticoll(cardstr);
 
-  rfid.PICC_IsNewCardPresent();
-  rfid.PICC_ReadCardSerial();
+  //rfid.PICC_IsNewCardPresent();
+  //rfid.PICC_ReadCardSerial();
 
 
-  delay(200);
+    delay(1000);
 
 
-}
+  }
 }
 
 

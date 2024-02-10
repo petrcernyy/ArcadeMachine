@@ -106,6 +106,10 @@ void mfrc_init(MFRC_t *mfrc);
 void mfrc_reset(MFRC_t *mfrc);
 void mfrc_antennaOn(MFRC_t *mfrc);
 
+void mfrc_to_card(MFRC_t *mfrc, uint8_t *sendData, uint8_t sendDataLen, uint8_t *responseData, uint8_t shortFrame);
+void mfrc_request_A(MFRC_t *mfrc);
+void mfrc_read_UID(MFRC_t *mfrc);
+
 
 
 #endif
