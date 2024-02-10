@@ -19,7 +19,7 @@
 #include <SPI.h>
 
 #ifndef MFRC522_SPICLOCK
-#define MFRC522_SPICLOCK (4000000u)	// MFRC522 accept upto 10MHz, set to 4MHz.
+#define MFRC522_SPICLOCK (1000000u)	// MFRC522 accept upto 10MHz, set to 4MHz.
 #endif
 
 class MFRC522 {
@@ -245,6 +245,7 @@ public:
 	StatusCode PICC_REQA_or_WUPA(byte command, byte *bufferATQA, byte *bufferSize);
 	virtual StatusCode PICC_Select(Uid *uid, byte validBits = 0);
 	StatusCode PICC_HaltA();
+	void PICC_UID(uint8_t *serNum);
 	
 	/////////////////////////////////////////////////////////////////////////////////////
 	// Convenience functions - does not add extra functionality

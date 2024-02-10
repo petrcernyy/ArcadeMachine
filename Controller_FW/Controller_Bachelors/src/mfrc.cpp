@@ -486,6 +486,25 @@ MFRC522::StatusCode MFRC522::PICC_Select(	Uid *uid,			///< Pointer to Uid struct
 	//						2			CT		uid3	uid4	uid5
 	//						3			uid6	uid7	uid8	uid9
 	
+	PCD_ClearRegisterBitMask(CollReg, 0x80);
+	buffer[0] = PICC_CMD_SEL_CL1;
+
+	index			= 2;					// Number of whole bytes: SEL + NVB + UIDs
+	buffer[1]		= 0x20;	// NVB - Number of Valid Bits
+	bufferUsed		= index;
+	// Store response in the unused part of buffer
+	responseBuffer	= &buffer[index];
+	responseLength	= sizeof(buffer) - index;
+	PCD_WriteRegister(BitFramingReg, 0x00);	// RxAlign = BitFramingReg[6..4]. TxLastBits = BitFramingReg[2..0]
+	
+	// Transmit the buffer and receive the response.
+	result = PCD_TransceiveData(buffer, bufferUsed, responseBuffer, &responseLength, 0, 0);
+
+	Serial.print(buffer[2]);
+	Serial.print(buffer[3]);
+	Serial.print(buffer[4]);
+	Serial.println(buffer[5]);
+/*
 	// Sanity checks
 	if (validBits > 80) {
 		return STATUS_INVALID;
@@ -651,7 +670,7 @@ MFRC522::StatusCode MFRC522::PICC_Select(	Uid *uid,			///< Pointer to Uid struct
 	// Set correct uid->size
 	uid->size = 3 * cascadeLevel + 1;
 
-	return STATUS_OK;
+	return STATUS_OK;*/
 } // End PICC_Select()
 
 /**
@@ -724,3 +743,23 @@ bool MFRC522::PICC_ReadCardSerial() {
 	MFRC522::StatusCode result = PICC_Select(&uid);
 	return (result == STATUS_OK);
 } // End 
+
+void MFRC522::PICC_UID(uint8_t *serNum){
+  byte responseBuffer[4];
+  byte responseLength = 4;
+  PCD_ClearRegisterBitMask(CollReg, 0x80);
+  PCD_WriteRegister(BitFramingReg, 0x00);
+  serNum[0] = PICC_CMD_SEL_CL1;
+  serNum[1] = 0x20;
+  MFRC522::StatusCode result = PCD_TransceiveData(serNum, 2, responseBuffer, &responseLength);
+	if (result == STATUS_OK) { // That is ironically NOT ok in this case ;-)
+		  Serial.print(serNum[0]);
+			Serial.print(serNum[1]);
+			Serial.print(serNum[2]);
+			Serial.println(serNum[3]);
+	}
+	else{
+		Serial.print(result);
+	}
+
+}

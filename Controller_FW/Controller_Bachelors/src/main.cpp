@@ -5,6 +5,38 @@
 #include "adc.hpp"
 #include "uart.hpp"
 
+void setup(void){};
+
+void loop(void){
+
+  uint8_t status, cardstr[16+1];
+  uint8_t UID[5];
+
+  Serial.begin(9600);
+  SPI.begin();
+  MFRC522 rfid(10, 5);  
+  rfid.PCD_Init();
+
+  while(1)
+  {
+    
+  //status = MFRC522_Request(PICC_REQIDL, cardstr);
+  //Serial.println(status);
+  //status = MFRC522_Anticoll(cardstr);
+
+  rfid.PICC_IsNewCardPresent();
+  rfid.PICC_ReadCardSerial();
+
+
+  delay(200);
+
+
+}
+}
+
+
+
+/*
 void setup(void){}
 
 #define RISINGEDGE 0b00000111
@@ -195,4 +227,4 @@ void led_control(char* index)
       gpio_write(&blue_led, 0);
       break;
   }
-}
+}*/
