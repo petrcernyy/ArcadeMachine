@@ -1,13 +1,17 @@
 #include "mymfrc.hpp"
+#include <SPI.h>
 
 void mfrc_write_register(MFRC_t *mfrc, MFRC_Reg reg, uint8_t value)
 {
-	SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));	// Set the settings to work with SPI bus
-	digitalWrite(mfrc->CE, LOW);		// Select slave
-	SPI.transfer(reg);						// MSB == 0 is for writing. LSB is not used in address. Datasheet section 8.1.2.3.
-	SPI.transfer(value);
-	digitalWrite(mfrc->CE, HIGH);		// Release slave again
-	SPI.endTransaction(); // Stop using the SPI bus
+	//SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));	// Set the settings to work with SPI bus
+	//digitalWrite(mfrc->CE, LOW);		// Select slave
+	gpio_write(&mfrc->CE, 0);
+	spi_transceive(reg);
+	spi_transceive(value);
+	//SPI.transfer(reg);						// MSB == 0 is for writing. LSB is not used in address. Datasheet section 8.1.2.3.
+	//SPI.transfer(value);
+	gpio_write(&mfrc->CE, 1);		// Release slave again
+	//SPI.endTransaction(); // Stop using the SPI bus
 } // End PCD_WriteRegister()
 
 /**
@@ -16,14 +20,16 @@ void mfrc_write_register(MFRC_t *mfrc, MFRC_Reg reg, uint8_t value)
  */
 void mfrc_write_register(MFRC_t *mfrc, MFRC_Reg reg, uint8_t count, uint8_t *values)
 {
-	SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));	// Set the settings to work with SPI bus
-	digitalWrite(mfrc->CE, LOW);		// Select slave
-	SPI.transfer(reg);						// MSB == 0 is for writing. LSB is not used in address. Datasheet section 8.1.2.3.
+	//SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));	// Set the settings to work with SPI bus
+	gpio_write(&mfrc->CE, 0);		// Select slave
+	spi_transceive(reg);
+	//SPI.transfer(reg);						// MSB == 0 is for writing. LSB is not used in address. Datasheet section 8.1.2.3.
 	for (byte index = 0; index < count; index++) {
-		SPI.transfer(values[index]);
+		spi_transceive(values[index]);
+		//SPI.transfer(values[index]);
 	}
-	digitalWrite(mfrc->CE, HIGH);		// Release slave again
-	SPI.endTransaction(); // Stop using the SPI bus
+	gpio_write(&mfrc->CE, 1);		// Release slave again
+	//SPI.endTransaction(); // Stop using the SPI bus
 } // End PCD_WriteRegister()
 
 /**
@@ -33,12 +39,14 @@ void mfrc_write_register(MFRC_t *mfrc, MFRC_Reg reg, uint8_t count, uint8_t *val
 uint8_t mfrc_read_register(MFRC_t *mfrc, MFRC_Reg reg)
 {
     byte value;
-	SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));	// Set the settings to work with SPI bus
-	digitalWrite(mfrc->CE, LOW);			// Select slave
-	SPI.transfer(0x80 | reg);					// MSB == 1 is for reading. LSB is not used in address. Datasheet section 8.1.2.3.
-	value = SPI.transfer(0);					// Read the value back. Send 0 to stop reading.
-	digitalWrite(mfrc->CE, HIGH);			// Release slave again
-	SPI.endTransaction(); // Stop using the SPI bus
+	//SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));	// Set the settings to work with SPI bus
+	gpio_write(&mfrc->CE, 0);		// Select slave
+	spi_transceive(0x80 | reg);
+	//SPI.transfer(0x80 | reg);					// MSB == 1 is for reading. LSB is not used in address. Datasheet section 8.1.2.3.
+	value = spi_transceive(0);
+	//value = SPI.transfer(0);					// Read the value back. Send 0 to stop reading.
+	gpio_write(&mfrc->CE, 1);			// Release slave again
+	//SPI.endTransaction(); // Stop using the SPI bus
 	return value;
 } // End PCD_ReadRegister()
 
@@ -53,26 +61,30 @@ void mfrc_read_register(MFRC_t *mfrc, MFRC_Reg reg, uint8_t count, uint8_t *valu
 	}
 	byte address = 0x80 | reg;				// MSB == 1 is for reading. LSB is not used in address. Datasheet section 8.1.2.3.
 	byte index = 0;							// Index in values array.
-	SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));	// Set the settings to work with SPI bus
-	digitalWrite(mfrc->CE, LOW);		// Select slave
+	//SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));	// Set the settings to work with SPI bus
+	gpio_write(&mfrc->CE, 0);		// Select slave
 	count--;								// One read is performed outside of the loop
-	SPI.transfer(address);					// Tell MFRC522 which address we want to read
+	spi_transceive(address);
+	//SPI.transfer(address);					// Tell MFRC522 which address we want to read
 	if (rxAlign) {		// Only update bit positions rxAlign..7 in values[0]
 		// Create bit mask for bit positions rxAlign..7
 		byte mask = (0xFF << rxAlign) & 0xFF;
 		// Read value and tell that we want to read the same address again.
-		byte value = SPI.transfer(address);
+		//byte value = SPI.transfer(address);
+		byte value = spi_transceive(address);
 		// Apply mask to both current value of values[0] and the new data in value.
 		values[0] = (values[0] & ~mask) | (value & mask);
 		index++;
 	}
 	while (index < count) {
-		values[index] = SPI.transfer(address);	// Read value and tell that we want to read the same address again.
+		//values[index] = SPI.transfer(address);
+		values[index] = spi_transceive(address);	// Read value and tell that we want to read the same address again.
 		index++;
 	}
-	values[index] = SPI.transfer(0);			// Read the final byte. Send 0 to stop reading.
-	digitalWrite(mfrc->CE, HIGH);			// Release slave again
-	SPI.endTransaction(); // Stop using the SPI bus
+	//values[index] = SPI.transfer(0);
+	values[index] = spi_transceive(0);			// Read the final byte. Send 0 to stop reading.
+	gpio_write(&mfrc->CE, 1);			// Release slave again
+	//SPI.endTransaction(); // Stop using the SPI bus
 } // End PCD_ReadRegister()
 
 /*
@@ -97,6 +109,10 @@ void mfrc_clear_bitmask(MFRC_t *mfrc, MFRC_Reg reg, uint8_t mask)
 
 void mfrc_init(MFRC_t *mfrc)
 {
+
+	gpio_set_mode(&mfrc->CE, Output);
+	//gpio_set_mode(&mfrc->RST, Output);
+
     mfrc_reset(mfrc);
 
     mfrc_write_register(mfrc, TxModeReg, 0x00);
@@ -131,7 +147,7 @@ void mfrc_antennaOn(MFRC_t *mfrc)
     }
 }
 
-void mfrc_to_card(MFRC_t *mfrc, uint8_t *sendData, uint8_t sendDataLen, uint8_t *responseData, uint8_t shortFrame)
+int mfrc_to_card(MFRC_t *mfrc, uint8_t *sendData, uint8_t sendDataLen, uint8_t *responseData, uint8_t shortFrame)
 {
 
 	mfrc_write_register(mfrc, CommandReg, Idle);			// Stop any active command.
@@ -150,6 +166,20 @@ void mfrc_to_card(MFRC_t *mfrc, uint8_t *sendData, uint8_t sendDataLen, uint8_t 
 	const uint32_t deadline = millis() + 36;
 	bool completed = false;
 
+	while (!completed)
+	{
+		byte n = mfrc_read_register(mfrc, ComIrqReg);	// ComIrqReg[7..0] bits are: Set1 TxIRq RxIRq IdleIRq HiAlertIRq LoAlertIRq ErrIRq TimerIRq
+		if (n & 0x30) {					// One of the interrupts that signal success has been set.
+			completed = true;
+		}
+		if (n & 0x01) {						// Timer interrupt - nothing received in 25ms
+			return 0;
+		}
+		if (millis() > deadline) {
+			return 0;
+		}
+	}
+/*
 	do {
 		byte n = mfrc_read_register(mfrc, ComIrqReg);	// ComIrqReg[7..0] bits are: Set1 TxIRq RxIRq IdleIRq HiAlertIRq LoAlertIRq ErrIRq TimerIRq
 		if (n & 0x30) {					// One of the interrupts that signal success has been set.
@@ -162,13 +192,14 @@ void mfrc_to_card(MFRC_t *mfrc, uint8_t *sendData, uint8_t sendDataLen, uint8_t 
 		yield();
 	}
 	while (static_cast<uint32_t> (millis()) < deadline);
-
+*/
 	uint8_t n = mfrc_read_register(mfrc, FIFOLevelReg);	
 	mfrc_read_register(mfrc, FIFODataReg, n, responseData, 0);	// Get received data from FIFO
+	return 1;
 
 }
 
-void mfrc_request_A(MFRC_t *mfrc)
+int mfrc_request_A(MFRC_t *mfrc)
 {
 	uint8_t ATQA[2];
 
@@ -180,11 +211,11 @@ void mfrc_request_A(MFRC_t *mfrc)
 	mfrc_clear_bitmask(mfrc, CollReg, 0x80);		// ValuesAfterColl=1 => Bits received after collision are cleared.
 
 	uint8_t command = REQA;
-	mfrc_to_card(mfrc, &command, 1, ATQA, 1);
+	return mfrc_to_card(mfrc, &command, 1, ATQA, 1);
 
 }
 
-void mfrc_read_UID(MFRC_t *mfrc)
+int mfrc_read_UID(MFRC_t *mfrc)
 {
 
 	uint8_t buffer[9];
@@ -201,10 +232,12 @@ void mfrc_read_UID(MFRC_t *mfrc)
 	mfrc_write_register(mfrc, BitFramingReg, 0x00);	// RxAlign = BitFramingReg[6..4]. TxLastBits = BitFramingReg[2..0]
 	
 	// Transmit the buffer and receive the response.
-	mfrc_to_card(mfrc, buffer, bufferUsed, responseBuffer, 0);
-	Serial.print(buffer[2]);
-	Serial.print(buffer[3]);
-	Serial.print(buffer[4]);
-	Serial.println(buffer[5]);
+	int status = mfrc_to_card(mfrc, buffer, bufferUsed, responseBuffer, 0);
 
+	mfrc->Uid[0] = buffer[2];
+	mfrc->Uid[1] = buffer[3];
+	mfrc->Uid[2] = buffer[4];
+	mfrc->Uid[3] = buffer[5];
+
+	return status;
 }

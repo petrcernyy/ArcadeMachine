@@ -4,6 +4,8 @@
 #include "gpio.hpp"
 #include "adc.hpp"
 #include "uart.hpp"
+#include "spi.hpp"
+#include <SPI.h>
 
 void setup(void){};
 
@@ -11,27 +13,32 @@ void loop(void){
 
 
   Serial.begin(9600);
-  SPI.begin();
+  //SPI.begin();
 
-  MFRC_t mfrc = { .CE = 10, .RST = 5};
+  SPI_t spi = { .clk = { .pin = 5, .port = B},
+                .mosi = { .pin = 3, .port = B},
+                .miso = { .pin = 4, .port = B}};
+
+  spi_init(&spi);
+
+  MFRC_t mfrc = { .CE = { .pin = 2, .port = B},
+                   .RST = { .pin = 5, .port = D}};
 
   mfrc_init(&mfrc);
 
 
+
   while(1)
   {
-    
-    mfrc_request_A(&mfrc);
-    mfrc_read_UID(&mfrc);
-  //status = MFRC522_Request(PICC_REQIDL, cardstr);
-  //Serial.println(status);
-  //status = MFRC522_Anticoll(cardstr);
+   
+    if (mfrc_request_A(&mfrc) && mfrc_read_UID(&mfrc)){
+      Serial.print(mfrc.Uid[0]);
+      Serial.print(mfrc.Uid[1]);
+      Serial.print(mfrc.Uid[2]);
+      Serial.println(mfrc.Uid[3]);
+    }
 
-  //rfid.PICC_IsNewCardPresent();
-  //rfid.PICC_ReadCardSerial();
-
-
-    delay(1000);
+  delay(50);
 
 
   }
