@@ -5,48 +5,7 @@
 #include "adc.hpp"
 #include "uart.hpp"
 #include "spi.hpp"
-#include <SPI.h>
 
-void setup(void){};
-
-void loop(void){
-
-
-  Serial.begin(9600);
-  //SPI.begin();
-
-  SPI_t spi = { .clk = { .pin = 5, .port = B},
-                .mosi = { .pin = 3, .port = B},
-                .miso = { .pin = 4, .port = B}};
-
-  spi_init(&spi);
-
-  MFRC_t mfrc = { .CE = { .pin = 2, .port = B},
-                   .RST = { .pin = 5, .port = D}};
-
-  mfrc_init(&mfrc);
-
-
-
-  while(1)
-  {
-   
-    if (mfrc_request_A(&mfrc) && mfrc_read_UID(&mfrc)){
-      Serial.print(mfrc.Uid[0]);
-      Serial.print(mfrc.Uid[1]);
-      Serial.print(mfrc.Uid[2]);
-      Serial.println(mfrc.Uid[3]);
-    }
-
-  delay(50);
-
-
-  }
-}
-
-
-
-/*
 void setup(void){}
 
 #define RISINGEDGE 0b00000111
@@ -108,10 +67,16 @@ ISR(TIMER2_COMPA_vect){
 
 void loop(void){
 
-  MFRC522 rfid(10, 5);
+  SPI_t spi = { .clk = { .pin = 5, .port = B},
+                .mosi = { .pin = 3, .port = B},
+                .miso = { .pin = 4, .port = B}};
 
-  SPI.begin(); // Init SPI bus
-  rfid.PCD_Init(); // Init MFRC522 
+  spi_init(&spi);
+
+  MFRC_t mfrc = { .CE = { .pin = 2, .port = B},
+                   .RST = { .pin = 5, .port = D}};
+
+  mfrc_init(&mfrc);
 
   uint8_t nuidPICC[4];
 
@@ -167,10 +132,9 @@ void loop(void){
     JoyYVal = adc_read(&JoystickY);
     JoyYVal = ((JoyYVal)/double(1023))*(double)100;
 
-    if ((rfid.PICC_IsNewCardPresent()) && (rfid.PICC_ReadCardSerial())){
-
+    if (mfrc_request_A(&mfrc) && mfrc_read_UID(&mfrc)){
         for (byte i = 0; i < 4; i++) {
-          nuidPICC[i] = rfid.uid.uidByte[i];
+          nuidPICC[i] = mfrc.Uid[i];
           index += sprintf(&nuidChar[index], "%d", nuidPICC[i]);
         }
         index = 0; 
@@ -178,7 +142,7 @@ void loop(void){
         card_read = 1;
     }
 
-    rfid.PICC_HaltA();
+    mfrc_card_halt(&mfrc);
 
     if(card_read){
       card_read = 0;
@@ -237,4 +201,4 @@ void led_control(char* index)
       gpio_write(&blue_led, 0);
       break;
   }
-}*/
+}

@@ -485,7 +485,7 @@ MFRC522::StatusCode MFRC522::PICC_Select(	Uid *uid,			///< Pointer to Uid struct
 	//		10 bytes		1			CT		uid0	uid1	uid2
 	//						2			CT		uid3	uid4	uid5
 	//						3			uid6	uid7	uid8	uid9
-	
+	/*
 	PCD_ClearRegisterBitMask(CollReg, 0x80);
 	buffer[0] = PICC_CMD_SEL_CL1;
 
@@ -504,7 +504,7 @@ MFRC522::StatusCode MFRC522::PICC_Select(	Uid *uid,			///< Pointer to Uid struct
 	Serial.print(buffer[3]);
 	Serial.print(buffer[4]);
 	Serial.println(buffer[5]);
-/*
+*/
 	// Sanity checks
 	if (validBits > 80) {
 		return STATUS_INVALID;
@@ -670,7 +670,7 @@ MFRC522::StatusCode MFRC522::PICC_Select(	Uid *uid,			///< Pointer to Uid struct
 	// Set correct uid->size
 	uid->size = 3 * cascadeLevel + 1;
 
-	return STATUS_OK;*/
+	return STATUS_OK;
 } // End PICC_Select()
 
 /**

@@ -8,7 +8,9 @@ typedef enum{
 
         // Page 0: Command and status
 		CommandReg				= 0x01 << 1,	// starts and stops command execution
+		DivIEnReg				= 0x03 << 1,	// enable and disable interrupt request control bits
 		ComIrqReg				= 0x04 << 1,	// interrupt request bits 
+		DivIrqReg				= 0x05 << 1,	// interrupt request bits
 		FIFODataReg				= 0x09 << 1,	// input and output of 64 byte FIFO buffer
 		FIFOLevelReg			= 0x0A << 1,	// number of bytes stored in the FIFO buffer
 		BitFramingReg			= 0x0D << 1,	// adjustments for bit-oriented frames
@@ -50,7 +52,7 @@ typedef enum{
 		SEL_CL1			= 0x93,		// Anti collision/Select, Cascade Level 1
 		SEL_CL2			= 0x95,		// Anti collision/Select, Cascade Level 2
 		SEL_CL3			= 0x97,		// Anti collision/Select, Cascade Level 3
-		HLTA			= 0x50,		// HaLT command, Type A. Instructs an ACTIVE PICC to go to state HALT.
+		HALT			= 0x50,		// HaLT command, Type A. Instructs an ACTIVE PICC to go to state HALT.
 
 }RFID_Command;
 
@@ -66,9 +68,11 @@ typedef struct{
 void mfrc_write_register(MFRC_t *mfrc, MFRC_Reg reg, uint8_t value);
 void mfrc_write_register(MFRC_t *mfrc, MFRC_Reg reg, uint8_t count, uint8_t *values);
 uint8_t mfrc_read_register(MFRC_t *mfrc, MFRC_Reg reg);
-void mfrc_read_register(MFRC_t *mfrc, MFRC_Reg reg, uint8_t count, uint8_t *values, uint8_t rxAlign = 0);
+void mfrc_read_register(MFRC_t *mfrc, MFRC_Reg reg, uint8_t count, uint8_t *values);
 void mfrc_set_bitmask(MFRC_t *mfrc, MFRC_Reg reg, uint8_t mask);
 void mfrc_clear_bitmask(MFRC_t *mfrc, MFRC_Reg reg, uint8_t mask);
+
+uint8_t mfrc_calculate_crc(MFRC_t *mfrc, uint8_t *data, uint8_t dataLen, uint8_t *response);
 
 void mfrc_init(MFRC_t *mfrc);
 void mfrc_reset(MFRC_t *mfrc);
@@ -77,6 +81,8 @@ void mfrc_antennaOn(MFRC_t *mfrc);
 int mfrc_to_card(MFRC_t *mfrc, uint8_t *sendData, uint8_t sendDataLen, uint8_t *responseData, uint8_t shortFrame);
 int mfrc_request_A(MFRC_t *mfrc);
 int mfrc_read_UID(MFRC_t *mfrc);
+
+void mfrc_card_halt(MFRC_t *mfrc);
 
 
 #endif
