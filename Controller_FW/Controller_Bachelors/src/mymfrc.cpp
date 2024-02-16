@@ -108,9 +108,25 @@ uint8_t mfrc_calculate_crc(MFRC_t *mfrc, uint8_t *data, uint8_t dataLen, uint8_t
 void mfrc_init(MFRC_t *mfrc) {
 
 	gpio_set_mode(&mfrc->CE, Output);					// Set Chip enable pin as output
+	gpio_write(&mfrc->CE, 1);
+	
+	gpio_set_mode(&mfrc->RST, Input);
 
-    mfrc_reset(mfrc);									// SoftReset of MFRC
+	bool hardReset = false;
+	if (gpio_read(&mfrc->RST) == 0) {	// The MFRC522 chip is in power down mode.
+		gpio_set_mode(&mfrc->RST, Output);		// Now set the resetPowerDownPin as digital output.
+		gpio_write(&mfrc->RST, 0);		// Make sure we have a clean LOW state.
+		delayMicroseconds(2);				// 8.8.1 Reset timing requirements says about 100ns. Let us be generous: 2μsl
+		gpio_write(&mfrc->RST, 1);		// Exit power down mode. This triggers a hard reset.
+		// Section 8.8.2 in the datasheet says the oscillator start-up time is the start up time of the crystal + 37,74μs. Let us be generous: 50ms.
+		delay(50);
+		hardReset = true;
+	}
 
+	if (!hardReset) {
+    	mfrc_reset(mfrc);									// SoftReset of MFRC
+	}
+	//mfrc_reset(mfrc);									// SoftReset of MFRC
     mfrc_write_register(mfrc, TxModeReg, 0x00);			// Defines the bit rate during data transmission --> 106 kBd
 	mfrc_write_register(mfrc, RxModeReg, 0x00);			// Defines the bit rate during data reception --> 106 kBd
 
@@ -132,7 +148,12 @@ void mfrc_init(MFRC_t *mfrc) {
 void mfrc_reset(MFRC_t *mfrc) {
 
     mfrc_write_register(mfrc, CommandReg, SoftReset);				// Send reset command to MFRC
-    while ((mfrc_read_register(mfrc, CommandReg) & (1 << 4))){};	// Wait for MFRC to reset
+    //while ((mfrc_read_register(mfrc, CommandReg) & (1 << 4))){};	// Wait for MFRC to reset
+	uint8_t count = 0;
+	do {
+		// Wait for the PowerDown bit in CommandReg to be cleared (max 3x50ms)
+		delay(50);
+	} while ((mfrc_read_register(mfrc, CommandReg) & (1 << 4)) && (++count) < 3);
 
 }
 
@@ -147,7 +168,7 @@ void mfrc_antennaOn(MFRC_t *mfrc) {
 }
 
 // Transceive data to card, and receive response. ShortFrame is used to initiate communication (ISO 14443 6.1.5.1)
-int mfrc_to_card(MFRC_t *mfrc, uint8_t *sendData, uint8_t sendDataLen, uint8_t *responseData, uint8_t shortFrame) {
+RFID_Status mfrc_to_card(MFRC_t *mfrc, uint8_t *sendData, uint8_t sendDataLen, uint8_t *responseData, uint8_t shortFrame) {
 
 	mfrc_write_register(mfrc, CommandReg, Idle);						// Stop any task
 	mfrc_write_register(mfrc, ComIrqReg, 0x7F);							// Set interrupt bits
@@ -168,28 +189,39 @@ int mfrc_to_card(MFRC_t *mfrc, uint8_t *sendData, uint8_t sendDataLen, uint8_t *
 	const uint32_t deadline = millis() + 36;
 	bool completed = false;
 
-	while (!completed)
-	{
-		uint8_t n = mfrc_read_register(mfrc, ComIrqReg);				// Wait for transmission to complete
-		if (n & 0x30) {
+	do {
+		uint8_t n = mfrc_read_register(mfrc, ComIrqReg);	// ComIrqReg[7..0] bits are: Set1 TxIRq RxIRq IdleIRq HiAlertIRq LoAlertIRq ErrIRq TimerIRq
+		if (n & 0x30) {					// One of the interrupts that signal success has been set.
 			completed = true;
+			break;
 		}
-		if (n & 0x01) {		// Timer timeout
-			return 0;
+		if (n & 0x01) {						// Timer interrupt - nothing received in 25ms
+			return timeout;
 		}
-		if (millis() > deadline) {		// Deadline timeout
-			return 0;
-		}
+		yield();
+	}
+	while (static_cast<uint32_t> (millis()) < deadline);
+
+	// 36ms and nothing happened. Communication with the MFRC522 might be down.
+	if (!completed) {
+		return timeout;
+	}
+
+
+	uint8_t errorRegValue = mfrc_read_register(mfrc, ErrorReg);
+
+	if (errorRegValue & 0x08) {		// CollErr
+		return collision;
 	}
 
 	uint8_t n = mfrc_read_register(mfrc, FIFOLevelReg);					// Number of bytes available to be read from FIFO
 	mfrc_read_register(mfrc, FIFODataReg, n, responseData);				// Read bytes from FIFO
-	return 1;
+	return ok;
 
 }
 
 // Perform request command to card
-int mfrc_request_A(MFRC_t *mfrc) {
+RFID_Status mfrc_request_A(MFRC_t *mfrc) {
 
 	uint8_t ATQA[2];										// Buffer to store ATQA from card
 
@@ -205,12 +237,74 @@ int mfrc_request_A(MFRC_t *mfrc) {
 }
 
 // Reads UID of card, and performs Select command
-int mfrc_read_UID(MFRC_t *mfrc) {
+RFID_Status mfrc_read_UID(MFRC_t *mfrc) {
+
+	uint8_t buffer[9];	
+	uint8_t level = 1;
+	bool uidcomplete = false;
+	bool anticollision_complete = false;
+	uint8_t *responseBuffer;
+	uint8_t bitNum = 0;
+	uint8_t idx = 2;
+	uint8_t valueOfCollReg;
+	uint8_t collisionPos;
+	uint8_t byteNum;
+	uint8_t followbit;
+
+	while(!uidcomplete)
+	{
+		if(level == 1){
+			buffer[0] = SEL_CL1;
+		}
+		else if(level == 2){
+			buffer[0] = SEL_CL2;
+		}
+		else if(level == 3){
+			buffer[0] = SEL_CL3;
+		}
+		buffer[1] = 0x20;
+
+		while(!anticollision_complete)
+		{
+			responseBuffer	= &buffer[idx];
+			mfrc_write_register(mfrc, BitFramingReg, (bitNum << 4) + bitNum);		// All bits of the last byte will be transmitted
+
+			RFID_Status status = mfrc_to_card(mfrc, buffer, 2, responseBuffer, 0);		// Transfer buffer to card
+
+			if (status == collision)
+			{
+				valueOfCollReg = mfrc_read_register(mfrc, CollReg);
+				collisionPos = valueOfCollReg & 0x1F;
+				byteNum = (collisionPos/8);
+				bitNum = (collisionPos%8);
+				buffer[1] = 0x20 + (((byteNum)<<4)|(bitNum));
+				idx = (byteNum)<<4 + 2;
+				followbit = (collisionPos-1)%8;
+				buffer[idx] |= (1 << followbit);
+			}
+			else if (status == ok)
+			{
+				anticollision_complete = true;
+			}
+		}
+
+		buffer[1] = 0x70;
+		buffer[6] = buffer[2] ^ buffer[3] ^ buffer[4] ^ buffer[5];
+		mfrc_calculate_crc(mfrc, buffer, 7, &buffer[7]);							// Calculate CRC
+		responseBuffer = &buffer[6];
+		mfrc_to_card(mfrc, buffer, 9, responseBuffer, 0);
+
+		// Fill UID from buffer
+		mfrc->Uid[0] = buffer[2];
+		mfrc->Uid[1] = buffer[3];
+		mfrc->Uid[2] = buffer[4];
+		mfrc->Uid[3] = buffer[5];
+	}
 
 	// Buffer for communication between MFRC and card
 	// 	byte[0]	byte[1]	byte[2]	byte[3]	byte[4]	byte[5]	byte[6] byte[7] byte[8]
 	//	SEL		NVB		UID0	UID1	UID2	UID3	BCC/SAK	CRCA	CRCA	
-	uint8_t buffer[8];									
+	/*uint8_t buffer[9];									
 
 	mfrc_clear_bitmask(mfrc, CollReg, 0x80);			// All received bits will be cleared after collision
 	buffer[0] = SEL_CL1;								// Select firs cascade level
@@ -223,7 +317,14 @@ int mfrc_read_UID(MFRC_t *mfrc) {
 	responseBuffer	= &buffer[index];
 	mfrc_write_register(mfrc, BitFramingReg, 0x00);		// All bits of the last byte will be transmitted
 	
-	int status = mfrc_to_card(mfrc, buffer, bufferUsed, responseBuffer, 0);		// Transfer buffer to card
+	RFID_Status status = mfrc_to_card(mfrc, buffer, bufferUsed, responseBuffer, 0);		// Transfer buffer to card
+
+	if (status == 2)
+	{
+		uint8_t valueOfCollReg = mfrc_read_register(mfrc, CollReg);
+		uint8_t collisionPos = valueOfCollReg & 0x1F;
+		buffer[1] = 0x20 + (((collisionPos/8)<<4)|(collisionPos%8));
+	}
 
 	buffer[1] = 0x70;															// NVB = 0x70, transmit 2 bytes of SEL, NVB + 4 bytes of UID
 	buffer[6] = buffer[2] ^ buffer[3] ^ buffer[4] ^ buffer[5];					// Calculate BCC
@@ -237,7 +338,8 @@ int mfrc_read_UID(MFRC_t *mfrc) {
 	mfrc->Uid[2] = buffer[4];
 	mfrc->Uid[3] = buffer[5];
 
-	return status;
+	return status;*/
+
 }
 
 // Put card in HALT state, so that we wont read the same UID more than once
