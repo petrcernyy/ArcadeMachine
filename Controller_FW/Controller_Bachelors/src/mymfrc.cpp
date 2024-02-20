@@ -221,7 +221,7 @@ RFID_Status mfrc_to_card(MFRC_t *mfrc, uint8_t *sendData, uint8_t sendDataLen, u
 }
 
 // Perform request command to card
-RFID_Status mfrc_request_A(MFRC_t *mfrc) {
+bool mfrc_request_A(MFRC_t *mfrc) {
 
 	uint8_t ATQA[2];										// Buffer to store ATQA from card
 
@@ -232,7 +232,9 @@ RFID_Status mfrc_request_A(MFRC_t *mfrc) {
 	mfrc_clear_bitmask(mfrc, CollReg, 0x80);				// All received bits will be cleared after collision
 
 	uint8_t command = REQA;									
-	return mfrc_to_card(mfrc, &command, 1, ATQA, 1);		// Perform request command type A
+	RFID_Status status = mfrc_to_card(mfrc, &command, 1, ATQA, 1);		// Perform request command type A
+
+	return ((status==ok) || (status==collision));
 
 }
 
@@ -250,6 +252,7 @@ RFID_Status mfrc_read_UID(MFRC_t *mfrc) {
 	uint8_t collisionPos;
 	uint8_t byteNum;
 	uint8_t followbit;
+	RFID_Status status;
 
 	while(!uidcomplete)
 	{
@@ -269,7 +272,7 @@ RFID_Status mfrc_read_UID(MFRC_t *mfrc) {
 			responseBuffer	= &buffer[idx];
 			mfrc_write_register(mfrc, BitFramingReg, (bitNum << 4) + bitNum);		// All bits of the last byte will be transmitted
 
-			RFID_Status status = mfrc_to_card(mfrc, buffer, 2, responseBuffer, 0);		// Transfer buffer to card
+			status = mfrc_to_card(mfrc, buffer, 2, responseBuffer, 0);		// Transfer buffer to card
 
 			if (status == collision)
 			{
@@ -278,7 +281,7 @@ RFID_Status mfrc_read_UID(MFRC_t *mfrc) {
 				byteNum = (collisionPos/8);
 				bitNum = (collisionPos%8);
 				buffer[1] = 0x20 + (((byteNum)<<4)|(bitNum));
-				idx = (byteNum)<<4 + 2;
+				idx = ((byteNum)<<4) + 2;
 				followbit = (collisionPos-1)%8;
 				buffer[idx] |= (1 << followbit);
 			}
@@ -299,6 +302,10 @@ RFID_Status mfrc_read_UID(MFRC_t *mfrc) {
 		mfrc->Uid[1] = buffer[3];
 		mfrc->Uid[2] = buffer[4];
 		mfrc->Uid[3] = buffer[5];
+
+		uidcomplete = true;
+
+		return status;
 	}
 
 	// Buffer for communication between MFRC and card

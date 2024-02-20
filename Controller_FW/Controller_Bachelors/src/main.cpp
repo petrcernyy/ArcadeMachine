@@ -118,6 +118,9 @@ void loop(void){
 
   char Values[18];
 
+  bool req;
+  RFID_Status card;
+
 
   while(1){
 
@@ -132,7 +135,12 @@ void loop(void){
     JoyYVal = adc_read(&JoystickY);
     JoyYVal = ((JoyYVal)/double(1023))*(double)100;
 
-    if (mfrc_request_A(&mfrc) && mfrc_read_UID(&mfrc)){
+    req = mfrc_request_A(&mfrc);
+    
+
+    if (req){
+      card = mfrc_read_UID(&mfrc);
+      if ((card==ok)){
         for (byte i = 0; i < 4; i++) {
           nuidPICC[i] = mfrc.Uid[i];
           index += sprintf(&nuidChar[index], "%d", nuidPICC[i]);
@@ -140,6 +148,7 @@ void loop(void){
         index = 0; 
         strcat(help, nuidChar);
         card_read = 1;
+      }
     }
 
     mfrc_card_halt(&mfrc);
