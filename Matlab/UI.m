@@ -2,6 +2,7 @@ classdef UI < handle
 
     properties (SetAccess = public)
         Axes                        %For ploting game, pass this to game object
+        AxesPanelSize
     end
 
     methods (Access = public)
@@ -12,37 +13,41 @@ classdef UI < handle
         % writable by this function
         function saveScore(this, Score)
 
-            GamePath = fullfile(this.GamesPath, this.GameNames_arr(this.GameIDX));
-            scoreFile = dir(fullfile(GamePath, 'score.txt'));
+            if (~isempty(this.Player))
 
-            if (~isempty(scoreFile))
-                
-                fileattrib(fullfile(GamePath, 'score.txt'), '+w');
-                scoreboard = readtable(fullfile(GamePath, 'score.txt'));
-                idx = find(strcmp(this.Player, scoreboard.Name));
-                if (~isempty(idx))
-                    if (Score > scoreboard.Score(idx))
-                        scoreboard(idx,:) = table({this.Player}, Score);
+                GamePath = fullfile(this.GamesPath, this.GameNames_arr(this.GameIDX));
+                scoreFile = dir(fullfile(GamePath, 'score.txt'));
+    
+                if (~isempty(scoreFile))
+                    
+                    fileattrib(fullfile(GamePath, 'score.txt'), '+w');
+                    scoreboard = readtable(fullfile(GamePath, 'score.txt'));
+                    idx = find(strcmp(this.Player, scoreboard.Name));
+                    if (~isempty(idx))
+                        if (Score > scoreboard.Score(idx))
+                            scoreboard(idx,:) = table({this.Player}, Score);
+                        end
+                    else
+                        scoreboard(height(scoreboard)+1,:) = table({this.Player}, Score);
                     end
+                    
+                    scoreboard = sortrows(scoreboard, 2, 'descend');
+                    scoreboard(10:end,:) = [];
+                    sendEventToHTMLSource(this.LeaderBoard, "newData", jsonencode(scoreboard));
+                    writetable(scoreboard, fullfile(GamePath, 'score.txt'));
+                    fileattrib(fullfile(GamePath, 'score.txt'), '-w');
+    
                 else
-                    scoreboard(height(scoreboard)+1,:) = table({this.Player}, Score);
+                    
+                    Name = {this.Player};
+                    scoreboard = table(Name, Score);
+                    sendEventToHTMLSource(this.LeaderBoard, "newData", jsonencode(scoreboard));
+                    writetable(table(Name, Score), fullfile(GamePath, 'score.txt'));
+                    fileattrib(fullfile(GamePath, 'score.txt'), '-w');
+    
                 end
-                
-                scoreboard = sortrows(scoreboard, 2, 'descend');
-                scoreboard(10:end,:) = [];
-                sendEventToHTMLSource(this.LeaderBoard, "newData", jsonencode(scoreboard));
-                writetable(scoreboard, fullfile(GamePath, 'score.txt'));
-                fileattrib(fullfile(GamePath, 'score.txt'), '-w');
-
-            else
-                
-                Name = {this.Player};
-                scoreboard = table(Name, Score);
-                sendEventToHTMLSource(this.LeaderBoard, "newData", jsonencode(scoreboard));
-                writetable(table(Name, Score), fullfile(GamePath, 'score.txt'));
-                fileattrib(fullfile(GamePath, 'score.txt'), '-w');
-
             end
+            
         end
 
         % Call this function to handle return back to main menu. Deletes
@@ -50,7 +55,6 @@ classdef UI < handle
         function backToMainMenu(this)
 
             this.stopMyTimer(Enums.SteppingTimerE);
-            % this.stopMyTimer(Enums.WatchDogTimerE);
             this.startMyTimer(Enums.FoldersTimerE);
 
             this.stopSoundtrack();
@@ -67,11 +71,7 @@ classdef UI < handle
             this.sendJoystickDatatoHtml();
             this.playSoundtrack('menu_music.mp3');
             this.GameFlag = 0;
-
-            % this.WatchDogTimerCounter = 0;
-            % this.returnVal = 0;
-            % this.startParallelTask();
-            % this.startMyTimer(Enums.WatchDogTimerE);        
+     
 
         end
 
@@ -246,9 +246,10 @@ classdef UI < handle
         function this = UI()
 
             this.GamesPath = fullfile(pwd, "hry");
+            % this.GamesPath = "D:\hry";
             
             this.Fig_Main = uifigure('CloseRequestFcn', @this.closeFigureMouse, 'WindowKeyPressFcn', @this.keyPressed,...
-                                    'Units','normalized', 'Position', [0.1 0.1 0.8 0.8]);
+                                    'Units','normalized', 'Position', [0 0 1 1], 'WindowState','maximized', 'WindowStyle','alwaysontop');
             
             this.Panel_Main = uipanel(this.Fig_Main,'Units', 'normalized', 'Position', [0 0 1 1], 'HitTest', 'off');
             this.Panel_Game = uipanel(this.Fig_Main,'Units', 'normalized', 'Position', [0 0 1 1], 'Visible', 'off',...
@@ -256,16 +257,20 @@ classdef UI < handle
             this.Panel_Axis = uipanel(this.Panel_Game, 'Units','normalized',...
                                 'Position', [0.025 0.1 0.6 0.8]);
 
+            this.AxesPanelSize = getpixelposition(this.Panel_Axis);
+
             sizePanel = getpixelposition(this.Panel_Main, true);
             this.width_Panel = sizePanel(3);
             this.height_Panel = sizePanel(4);
 
+            this.Loading = uihtml(this.Panel_Main, "HTMLSource", 'html/loading.html', 'Position',...
+                    [0 0 this.width_Panel this.height_Panel], 'HTMLEventReceivedFcn', @this.htmldatareceived);
+
+            pause(10);
       
             this.Html = uihtml(this.Panel_Main, "HTMLSource", 'html/index.html', "Position",....
                             [0 0 this.width_Panel this.height_Panel],...
                             'HTMLEventReceivedFcn', @this.htmldatareceived);
-            this.Loading = uihtml(this.Panel_Main, "HTMLSource", 'html/loading.html', 'Position',...
-                    [0 0 this.width_Panel this.height_Panel], 'HTMLEventReceivedFcn', @this.htmldatareceived);
             this.newUserWindowPanel = uipanel(this.Panel_Main,'Units', 'normalized', 'Position', [0 0 1 1], 'Visible', 'off');
             this.newUserWindow = uihtml(this.newUserWindowPanel, 'HTMLSource', 'html/usernamewindow.html',...
                 'Position', [0 0 this.width_Panel this.height_Panel]);
@@ -299,7 +304,7 @@ classdef UI < handle
             this.startParallelTask();
             this.startMyTimer(Enums.WatchDogTimerE);
 
-            waitfor(this.Loading);
+            % waitfor(this.Loading);
             set(this.Image, 'Position', this.Pos_Image);
             set(this.QR, 'Position', this.Pos_QR);
             this.startMyTimer(Enums.FoldersTimerE);
@@ -311,7 +316,7 @@ classdef UI < handle
 
         function toggleLED(this, ~, ~)
 
-            this.SerialReader.toggleBlueLed();
+            % this.SerialReader.toggleBlueLed();
 
         end
 
@@ -333,10 +338,6 @@ classdef UI < handle
                 this.WatchDogTimerCounter = 1;
             end
             send(this.workerQueueClient, this.WatchDogTimerCounter);
-            % sprintf("Counter = %d \n Return = %d \n ------------------------------", this.WatchDogTimerCounter, this.returnVal)
-            % if (this.WatchDogTimerCounter == this.returnVal)
-            %     system('taskkill /F /IM MATLAB.exe')
-            % end
 
         end
 
@@ -484,7 +485,7 @@ classdef UI < handle
                 this.Game = feval(this.GameNames_arr(this.GameIDX), this);
 
                 this.LeaderBoard = uihtml(this.Panel_Game, "HTMLSource", 'html/leaderboard.html',...
-                    'Position', [this.width_Panel-400 60 400 this.height_Panel-50]);
+                    'Position', [this.width_Panel-400 150 400 this.height_Panel-50]);
                 try
                     scoreboard = readtable(fullfile(this.GamesPath, this.GameNames_arr(this.GameIDX), 'score.txt'));
                     sendEventToHTMLSource(this.LeaderBoard, "newData", jsonencode(scoreboard));

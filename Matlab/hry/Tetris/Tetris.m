@@ -56,7 +56,7 @@ classdef Tetris < handle
 
 
             this.ax = hUI.Axes;
-            set(this.ax, "XLim", [0, this.xLimit + this.leftLimit], "YLim", [0, this.yLimit + this.bottomLimit], "Units", "pixels", "Position", [0, 0, this.windowXLimit, this.windowYLimit]);
+            set(this.ax, "XLim", [0, this.xLimit + this.leftLimit], "YLim", [0, this.yLimit + this.bottomLimit], "Units", "pixels", "Position", [200, 40, 500, 500]);
             hUI.setTimerFreq(1);
             this.scoreText = text(this.hUI.Axes, this.xLimit-2, this.yLimit-1, '0', 'FontSize', 20);
             % create horizontal edges

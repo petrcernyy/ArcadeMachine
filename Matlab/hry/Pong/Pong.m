@@ -9,6 +9,8 @@ classdef Pong < handle
         Height = 700
         Width = 700
 
+        toggle = 0
+
         ScorePlayer1
         Acc_Score1 = 0
         Acc_Score2 = 0
@@ -46,16 +48,58 @@ classdef Pong < handle
             if(this.GameStart)
                 this.Ball.update();
                 this.edgesCheck();
-    
-                if(this.PadlleL.Y+this.PadlleL.Height/20 < this.Ball.Y)
-                    this.PadlleL.moveUp();
-                elseif(this.PadlleL.Y-this.PadlleL.Height/20 > this.Ball.Y)
-                    this.PadlleL.moveDown();
+        
+                % Implement variable speed and imperfect alignment
+                targetY = this.Ball.Y; % Target Y position is initially the ball's Y position
+                
+                % Introduce a random offset to simulate misjudgment
+                offsetRange = 150; % Max pixels above or below the ball
+                misalignment = randi([-offsetRange, offsetRange], 1);
+                targetY = targetY + misalignment;
+        
+                % Calculate the difference in position between paddle and target
+                deltaY = targetY - this.PadlleL.Y;
+        
+                % Variable speed: simulate different reaction speeds
+                maxSpeed = 5; % Max pixels per frame the paddle can move
+                speedFactor = 0.5 + rand() * 0.5; % Random speed factor between 0.5 and 1
+                speed = maxSpeed * speedFactor;
+        
+                % Move the paddle towards the target position with calculated speed
+                if abs(deltaY) > speed
+                    if deltaY > 0
+                        this.PadlleL.Y = this.PadlleL.Y + speed; % Move down
+                    else
+                        this.PadlleL.Y = this.PadlleL.Y - speed; % Move up
+                    end
+                else
+                    this.PadlleL.Y = this.PadlleL.Y + deltaY; % Direct adjustment for small differences
                 end
-    
+        
+                % Ensure paddle remains within bounds
+                this.PadlleL.Y = max(min(this.PadlleL.Y, this.Height - this.PadlleL.Height/2), this.PadlleL.Height/2);
+        
                 this.Ball.plotBall();
                 this.PadlleL.plotPadlle();
                 this.PadlleR.plotPadlle();
+                % this.Ball.update();
+                % this.edgesCheck();
+                % 
+                % if (this.Ball.X < 300 && this.toggle == 0)
+                %     this.toggle = 1;
+                %     if(this.PadlleL.Y+this.PadlleL.Height/20 < this.Ball.Y)
+                %         this.PadlleL.moveUp();
+                %     elseif(this.PadlleL.Y-this.PadlleL.Height/20 > this.Ball.Y)
+                %         this.PadlleL.moveDown();
+                %     end
+                % else
+                %     this.toggle = 0;
+                % end
+                % 
+                % 
+                % this.Ball.plotBall();
+                % this.PadlleL.plotPadlle();
+                % this.PadlleR.plotPadlle();
             else
             end
            
