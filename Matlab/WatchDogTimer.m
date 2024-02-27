@@ -16,7 +16,7 @@ function WatchDogTimer(q1,q11)
         end
 
         if (counter > 5)
-            system('script.bat')
+            % system('script.bat')
         end
 
     end

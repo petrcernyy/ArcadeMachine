@@ -27,6 +27,7 @@ classdef Snake < handle
         direction = 0;
 
         score = 0;
+        scoreText;
 
         gameOver = 0;
     end
@@ -37,7 +38,7 @@ classdef Snake < handle
             this.hUI = hUI;
             this.ax = this.hUI.Axes;
             hUI.enableButtonsIRQ([1 1 1 1 1 1]);
-            hUI.setTimerFreq(0.1);
+            hUI.setTimerFreq(0.15);
 
             this.windowXLimit = this.hUI.AxesPanelSize(1);
             this.windowYLimit = this.hUI.AxesPanelSize(2);
@@ -47,6 +48,7 @@ classdef Snake < handle
             this.targetY = 0;
             this.target = line(this.ax, "XData", this.targetX, "YData", this.targetY, "Marker", "s", "MarkerSize", this.windowXLimit / this.xLimit, "MarkerFaceColor", "blue", "MarkerEdgeColor", "blue");
             this.exitRoutine = 0;
+            this.scoreText = text(this.ax, 45, 45, '0', 'FontSize', 20);
             while ~this.exitRoutine
                 for i = 1 : this.snakeStartLength
                     this.snakeBody(i) = line(this.ax, "XData", ceil(this.xLimit / 2) + (ceil(this.snakeStartLength / 2) - i) * cos(this.direction * pi / 2), "YData", ceil(this.yLimit / 2) + (ceil(this.snakeStartLength / 2) - i) * sin(this.direction * pi / 2), "Marker", "s", "MarkerSize", this.windowXLimit / this.xLimit);
@@ -99,6 +101,7 @@ classdef Snake < handle
                 % update score
                 this.hUI.toggleRedLED();
                 this.score = this.score + 1;
+                set(this.scoreText, 'String', num2str(this.score));
                 clc;
                 disp("Score: " + this.score);
                 % prolong the snake

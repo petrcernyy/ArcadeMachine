@@ -112,7 +112,6 @@ classdef Pong < handle
                 if(this.Ball.X+this.Ball.Radius < 0)
                     this.Acc_Score2 = this.Acc_Score2 + 1;
                     set(this.ScorePlayer2, 'String', num2str(this.Acc_Score2));
-                    this.hUI.saveScore(this.Acc_Score2);
                     this.Ball.Reset();
                 elseif (this.Ball.X > this.Width)
                     this.Acc_Score1 = this.Acc_Score1 + 1;
@@ -148,15 +147,8 @@ classdef Pong < handle
         end
 
         function BtnExitPressed(this)
+            this.hUI.saveScore(this.ScorePlayer2);
             this.hUI.backToMainMenu();
-        end
-
-        function JoyUpPressed(this)
-            this.PadlleL.moveUp();
-        end
-
-        function JoyDownPressed(this)
-            this.PadlleL.moveDown();
         end
 
     end

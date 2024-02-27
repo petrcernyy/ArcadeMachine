@@ -30,6 +30,7 @@ classdef UI < handle
         function setTimerFreq(this, timerFreq)
 
             this.SteppingTimer_Freq = timerFreq;
+            this.stopMyTimer(Enums.SteppingTimerE);
             set(this.SteppingTimer, 'Period', this.SteppingTimer_Freq);
 
         end
@@ -79,20 +80,10 @@ classdef UI < handle
             this.SerialReader.toggleRedLed();
 
         end
-        
-        % Enables multiplayer mode, meaning data from joystick and keys
-        % will not be united and there are going to be addition function
-        % JoyUpPressed(), JoyLeftPressed(),...
-        function setMultiplayer(this)
 
-            this.MultiplayerFlag = 1;
+        function sendJoystickValue(this)
 
-        end
-
-        % Ends multiplayer mode
-        function stopMultiplayer(this)
-
-            this.MultiplayerFlag = 0;
+            this.joyValues = 1;
 
         end
 
@@ -157,7 +148,7 @@ classdef UI < handle
         RepeatCounterY = 0
         Sound
         LeaderBoard
-        MultiplayerFlag = 0
+        joyValues = 0
 
         JoyControls = [0 0 0 0 0 0]
         ControlsIRQ = [0 0 0 0 0 0]
@@ -200,7 +191,7 @@ classdef UI < handle
             % this.GamesPath = "D:\hry";
             
             this.Fig_Main = uifigure('CloseRequestFcn', @this.closeFigureMouse, 'WindowKeyPressFcn', @this.keyPressed,...
-                                    'Units','normalized', 'Position', [0 0 1 1], 'WindowState','fullscreen', 'WindowStyle','alwaysontop', 'Color', [0.53 0.81 0.92]);
+                                    'Units','normalized', 'Position', [0 0 1 1], 'WindowState','fullscreen', 'Color', [0.53 0.81 0.92]);
             
             this.Panel_Main = uipanel(this.Fig_Main,'Units', 'normalized', 'OuterPosition', [0 0 1 1], 'HitTest', 'off', 'BackgroundColor', [0.53 0.81 0.92]);
             sizePanel = getpixelposition(this.Panel_Main, true);
@@ -218,14 +209,16 @@ classdef UI < handle
                     [0 0 this.width_Panel this.height_Panel], 'HTMLEventReceivedFcn', @this.htmldatareceived);
 
             pause(4);
+
+            set(this.Image, 'Position', this.Pos_Image);
+            set(this.QR, 'Position', this.Pos_QR);      
+            this.Loaded = 1;
+            set(this.Image, 'Visible', 'on');
+            set(this.QR, 'Visible', 'on'); 
       
             this.Html = uihtml(this.Panel_Main, "HTMLSource", 'html/index.html', "Position",....
                             [0 0 this.width_Panel this.height_Panel],...
                             'HTMLEventReceivedFcn', @this.htmldatareceived);
-            this.newUserWindowPanel = uipanel(this.Panel_Main,'Units', 'normalized', 'Position', [0 0 1 1], 'Visible', 'off');
-            this.newUserWindow = uihtml(this.newUserWindowPanel, 'HTMLSource', 'html/usernamewindow.html',...
-                'Position', [0 0 this.width_Panel this.height_Panel]);
-            this.newUserWindowName = uicontrol(this.newUserWindowPanel,'Style','edit', 'Position', [(this.width_Panel/2)-130 (this.height_Panel/2)-10 250 50], 'FontSize', 30);
             this.playSoundtrack('menu_music.mp3');
             this.initFolders();
             this.sendJoystickDatatoHtml();
@@ -248,6 +241,7 @@ classdef UI < handle
             this.LedTimer = timer('ExecutionMode', 'fixedRate', 'Period',1, ...
                                  'TimerFcn', @(~,~) this.toggleLED);
             this.startMyTimer(Enums.LedTimerE);
+            this.startMyTimer(Enums.FoldersTimerE);
     
             this.WatchDogTimer = timer('ExecutionMode', 'fixedRate', 'Period', 2, ...
                                 'TimerFcn', @(~,~) this.WatchDogUpdate);
@@ -255,13 +249,12 @@ classdef UI < handle
             this.startParallelTask();
             this.startMyTimer(Enums.WatchDogTimerE);
 
-            % waitfor(this.Loading);
-            set(this.Image, 'Position', this.Pos_Image);
-            set(this.QR, 'Position', this.Pos_QR);
-            this.startMyTimer(Enums.FoldersTimerE);
-            this.Loaded = 1;
-            set(this.Image, 'Visible', 'on');
-            set(this.QR, 'Visible', 'on'); 
+            this.newUserWindowPanel = uipanel(this.Panel_Main,'Units', 'normalized', 'Position', [0 0 1 1], 'Visible', 'off');
+            this.newUserWindow = uihtml(this.newUserWindowPanel, 'HTMLSource', 'html/usernamewindow.html',...
+                'Position', [0 0 this.width_Panel this.height_Panel]);
+            this.newUserWindowName = uicontrol(this.newUserWindowPanel,'Style','edit', 'Position', [(this.width_Panel/2)-130 (this.height_Panel/2)-50 250 50], 'FontSize', 30);
+
+
     
         end
 
@@ -439,6 +432,16 @@ classdef UI < handle
 
             addpath(fullfile(this.GamesPath, this.GameNames_arr(this.GameIDX)));
             try
+                this.LeaderBoard = uihtml(this.Panel_Game, "HTMLSource", 'html/leaderboard.html',...
+                    'Position', [this.width_Panel-400 300 400 this.height_Panel-50], 'Visible','off');
+                try
+                    scoreboard = readtable(fullfile(this.GamesPath, this.GameNames_arr(this.GameIDX), 'score.txt'));
+                    sendEventToHTMLSource(this.LeaderBoard, "newData", jsonencode(scoreboard));
+                    pause(1);
+                    sendEventToHTMLSource(this.LeaderBoard, "newData", jsonencode(scoreboard));
+                catch
+                end
+
                 this.Panel_Game.Visible = 'on';
 
                 this.Axes = uiaxes(this.Panel_Axis, "XLim", [0 100], "YLim", [0 100], 'Units','normalized',...
@@ -447,14 +450,7 @@ classdef UI < handle
 
                 this.Game = feval(this.GameNames_arr(this.GameIDX), this);
 
-                this.LeaderBoard = uihtml(this.Panel_Game, "HTMLSource", 'html/leaderboard.html',...
-                    'Position', [this.width_Panel-400 150 400 this.height_Panel-50]);
-                try
-                    scoreboard = readtable(fullfile(this.GamesPath, this.GameNames_arr(this.GameIDX), 'score.txt'));
-                    sendEventToHTMLSource(this.LeaderBoard, "newData", jsonencode(scoreboard));
-                catch
-                end
-                set(this.SteppingTimer, 'Period', this.SteppingTimer_Freq);
+                set(this.LeaderBoard, 'Visible', 'on');
 
                 this.startMyTimer(Enums.SteppingTimerE);
                 this.stopMyTimer(Enums.FoldersTimerE);
@@ -551,11 +547,7 @@ classdef UI < handle
                 if (~this.GameFlag)
                     this.BtnEnterPressed();
                 elseif(this.ControlsIRQ(Enums.BtnEnter))
-                    if (this.MultiplayerFlag)
-                        this.Game.JoyEnterPressed();
-                    else
-                        this.Game.BtnEnterPressed();
-                    end
+                    this.Game.BtnEnterPressed();
                 end
             end
 
@@ -563,82 +555,95 @@ classdef UI < handle
                 if (~this.GameFlag)
                     this.BtnExitPressed();
                 elseif (this.ControlsIRQ(Enums.BtnExit))
-                    if (this.MultiplayerFlag)
-                        this.Game.JoyExitPressed();
-                    else
-                        this.Game.BtnExitPressed();
-                    end
+                    this.Game.BtnExitPressed();
                 end
             end
-
-            if (Y > 30 && Y < 70)
-                this.JoyControls([Enums.Up, Enums.Down]) = 0;
-                this.RepeatCounterY = 0;
-                this.stopMyTimer(Enums.RepeatTimerYE);
-            end
-            if (Y < 30)
-                this.RepeatCounterY = this.RepeatCounterY + 1;
-                this.stopMyTimer(Enums.RepeatTimerYE);
-                if(this.RepeatCounterY > 5)
-                    set(this.RepeatTimerY, 'Period', 0.05);
-                    this.startMyTimer(Enums.RepeatTimerYE);
-                elseif(this.RepeatCounterY == 1)
-                    if (~this.GameFlag)
-                        this.BtnUpPressed();
-                    elseif (this.ControlsIRQ(Enums.Up))
-                        this.Game.BtnUpPressed();
-                    end
+            
+            if (~this.joyValues)
+                if (Y > 30 && Y < 70)
+                    this.JoyControls([Enums.Up, Enums.Down]) = 0;
+                    this.RepeatCounterY = 0;
+                    this.stopMyTimer(Enums.RepeatTimerYE);
                 end
-                this.JoyControls(Enums.Up) = 1;
-            elseif (Y > 80)
-                this.RepeatCounterY = this.RepeatCounterY + 1;
-                this.stopMyTimer(Enums.RepeatTimerYE);
-                if(this.RepeatCounterY > 5)
-                    set(this.RepeatTimerY, 'Period', 0.05);
-                    this.startMyTimer(Enums.RepeatTimerYE);
-                elseif(this.RepeatCounterY == 1)
-                    if (~this.GameFlag)
-                        this.BtnDownPressed();
-                    elseif (this.ControlsIRQ(Enums.Up))
-                        this.Game.BtnDownPressed();
+                if (Y < 30)
+                    this.RepeatCounterY = this.RepeatCounterY + 1;
+                    this.stopMyTimer(Enums.RepeatTimerYE);
+                    if(this.RepeatCounterY > 10)
+                        set(this.RepeatTimerY, 'Period', 0.1);
+                        this.startMyTimer(Enums.RepeatTimerYE);
+                    elseif(this.RepeatCounterY > 2)
+                        set(this.RepeatTimerY, 'Period', 0.5);
+                        this.startMyTimer(Enums.RepeatTimerYE);
+                    elseif(this.RepeatCounterY == 1)
+                        if (~this.GameFlag)
+                            this.BtnUpPressed();
+                        elseif (this.ControlsIRQ(Enums.Up))
+                            this.Game.BtnUpPressed();
+                        end
                     end
-                end
-                this.JoyControls(Enums.Down) = 1;
-            end
-
-            if (X > 30 && X < 70)
-                this.JoyControls([Enums.Left, Enums.Right]) = 0;
-                this.RepeatCounterX = 0;
-                this.stopMyTimer(Enums.RepeatTimerXE);
-            end
-            if (X < 30)
-                this.RepeatCounterX = this.RepeatCounterX + 1;
-                this.stopMyTimer(Enums.RepeatTimerXE);
-                if(this.RepeatCounterX > 5)
-                    set(this.RepeatTimerX, 'Period', 0.05);
-                    this.startMyTimer(Enums.RepeatTimerXE);
-                elseif(this.RepeatCounterX == 1)
-                    if (~this.GameFlag)
-                        this.BtnLeftPressed();
-                    elseif (this.ControlsIRQ(Enums.Up))
-                        this.Game.BtnLeftPressed();
+                    this.JoyControls(Enums.Up) = 1;
+                elseif (Y > 80)
+                    this.RepeatCounterY = this.RepeatCounterY + 1;
+                    this.stopMyTimer(Enums.RepeatTimerYE);
+                    if(this.RepeatCounterY > 10)
+                        this.stopMyTimer(Enums.RepeatTimerYE);
+                        set(this.RepeatTimerY, 'Period', 0.1);
+                        this.startMyTimer(Enums.RepeatTimerYE);
+                    elseif(this.RepeatCounterY > 2)
+                        set(this.RepeatTimerY, 'Period', 0.5);
+                        this.startMyTimer(Enums.RepeatTimerYE);
+                    elseif(this.RepeatCounterY == 1)
+                        if (~this.GameFlag)
+                            this.BtnDownPressed();
+                        elseif (this.ControlsIRQ(Enums.Down))
+                            this.Game.BtnDownPressed();
+                        end
                     end
+                    this.JoyControls(Enums.Down) = 1;
                 end
-                this.JoyControls(Enums.Left) = 1;
-            elseif (X > 80)
-                this.RepeatCounterX = this.RepeatCounterX + 1;
-                this.stopMyTimer(Enums.RepeatTimerXE);
-                if(this.RepeatCounterX > 50)
-                    set(this.RepeatTimerX, 'Period', 0.05);
-                    this.startMyTimer(Enums.RepeatTimerXE);
-                elseif(this.RepeatCounterX == 1)
-                    if (~this.GameFlag)
-                        this.BtnRightPressed();
-                    elseif (this.ControlsIRQ(Enums.Up))
-                        this.Game.BtnRightPressed();
+    
+                if (X > 30 && X < 70)
+                    this.JoyControls([Enums.Left, Enums.Right]) = 0;
+                    this.RepeatCounterX = 0;
+                    this.stopMyTimer(Enums.RepeatTimerXE);
+                end
+                if (X < 30)
+                    this.RepeatCounterX = this.RepeatCounterX + 1;
+                    this.stopMyTimer(Enums.RepeatTimerXE);
+                    if(this.RepeatCounterX > 10)
+                        set(this.RepeatTimerX, 'Period', 0.1);
+                        this.startMyTimer(Enums.RepeatTimerXE);
+                    elseif(this.RepeatCounterX > 2)
+                        set(this.RepeatTimerX, 'Period', 0.5);
+                        this.startMyTimer(Enums.RepeatTimerXE);
+                    elseif(this.RepeatCounterX == 1)
+                        if (~this.GameFlag)
+                            this.BtnLeftPressed();
+                        elseif (this.ControlsIRQ(Enums.Left))
+                            this.Game.BtnLeftPressed();
+                        end
                     end
+                    this.JoyControls(Enums.Left) = 1;
+                elseif (X > 80)
+                    this.RepeatCounterX = this.RepeatCounterX + 1;
+                    this.stopMyTimer(Enums.RepeatTimerXE);
+                    if(this.RepeatCounterX > 10)
+                        set(this.RepeatTimerX, 'Period', 0.1);
+                        this.startMyTimer(Enums.RepeatTimerXE);
+                    elseif(this.RepeatCounterX > 2)
+                        set(this.RepeatTimerX, 'Period', 0.5);
+                        this.startMyTimer(Enums.RepeatTimerXE);
+                    elseif(this.RepeatCounterX == 1)
+                        if (~this.GameFlag)
+                            this.BtnRightPressed();
+                        elseif (this.ControlsIRQ(Enums.Right))
+                            this.Game.BtnRightPressed();
+                        end
+                    end
+                    this.JoyControls(Enums.Right) = 1;
                 end
-                this.JoyControls(Enums.Right) = 1;
+            else
+                this.Game.JoyValues(X,Y);
             end
         end
 
@@ -648,21 +653,13 @@ classdef UI < handle
                 if (~this.GameFlag)
                     this.BtnRightPressed();
                 elseif (this.ControlsIRQ(Enums.Right))
-                    if (this.MultiplayerFlag)
-                        this.Game.JoyRightPressed();
-                    else
-                        this.Game.BtnRightPressed();
-                    end
+                    this.Game.BtnRightPressed();
                 end
             elseif (this.JoyControls(Enums.Left))
                 if (~this.GameFlag)
                     this.BtnLeftPressed();
                 elseif (this.ControlsIRQ(Enums.Left))
-                    if (this.MultiplayerFlag)
-                        this.Game.JoyLeftPressed();
-                    else
-                        this.Game.BtnLeftPressed();
-                    end
+                    this.Game.BtnLeftPressed();
                 end
             end
 
@@ -675,22 +672,12 @@ classdef UI < handle
                     this.BtnUpPressed();
                 elseif (this.ControlsIRQ(Enums.Up))
                     this.Game.BtnUpPressed();
-                    % if (this.MultiplayerFlag)
-                    %     this.Game.JoyUpPressed();
-                    % else
-                    %     this.Game.BtnUpPressed();
-                    % end
                 end
             elseif (this.JoyControls(Enums.Down))
                 if (~this.GameFlag)
                     this.BtnDownPressed();
                 elseif (this.ControlsIRQ(Enums.Down))
                     this.Game.BtnDownPressed();
-                    % if (this.MultiplayerFlag)
-                    %     this.Game.JoyDownPressed();
-                    % else
-                    %     this.Game.BtnDownPressed();
-                    % end
                 end
             end
 
@@ -705,13 +692,7 @@ classdef UI < handle
                     end
                     this.sendJoystickDatatoHtml();
                 end
-            elseif (this.CreatingUser)
-                uicontrol(this.newUserWindowName);
-                this.CreatingUserIDX = this.CreatingUserIDX - 1;
-                if (this.CreatingUserIDX < 0)
-                    this.CreatingUserIDX = 0;
-                end
-            end
+             end
         end
 
         function BtnDownPressed(this)
@@ -722,12 +703,6 @@ classdef UI < handle
                         this.GameIDX = length(this.GameNames_arr);
                     end
                     this.sendJoystickDatatoHtml();
-                end
-            else
-                focus(this.Fig_Main);
-                this.CreatingUserIDX = this.CreatingUserIDX + 1;
-                if (this.CreatingUserIDX > 1)
-                    this.CreatingUserIDX = 1;
                 end
             end
         end
@@ -768,6 +743,7 @@ classdef UI < handle
                 this.sendJoystickDatatoHtml();
                 this.ButtonPressed = 0;
             elseif (this.CreatingUserIDX == 1)
+                this.CreatingUserIDX = 0;
                 this.Player = this.newUserWindowName.String;
                 this.saveNewUserName();
                 set(this.newUserWindowPanel, 'Visible', 'off');
@@ -775,6 +751,9 @@ classdef UI < handle
                 set(this.QR, 'Visible', 'on');
                 this.CreatingUser = 0;
                 focus(this.Fig_Main);
+            elseif (this.CreatingUserIDX == 0)
+                focus(this.Fig_Main);
+                this.CreatingUserIDX = 1;
             end
         end
 
@@ -786,7 +765,7 @@ classdef UI < handle
                     this.sendJoystickDatatoHtml();
                 end
             else
-                delete(this.newUserWindow);
+                set(this.newUserWindowPanel, 'Visible', 'off');
                 this.CreatingUser = 0;
             end
         end
@@ -917,7 +896,7 @@ classdef UI < handle
             this.Game = [];
             delete(this.Axes);
             this.ControlsIRQ = [0 0 0 0 0 0];
-            this.MultiplayerFlag = 0;
+            this.joyValues = 0;
             this.Panel_Game.Visible = 'off';
             
             this.GameIDX = 1;

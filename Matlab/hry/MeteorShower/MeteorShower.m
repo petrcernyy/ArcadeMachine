@@ -49,7 +49,7 @@ classdef MeteorShower < handle
             this.movementCooldown = this.movementCooldownTime;
             
             %soundtrack
-            hUI.playSoundtrack('soundtrack.wav')
+            % hUI.playSoundtrack('soundtrack.wav')
 
             this.CAR.posx = this.Xlimit/2;
             this.CAR.posy = this.Ylimit/10;
@@ -66,7 +66,7 @@ classdef MeteorShower < handle
             this.introText = text(this.Axis, this.Xlimit/2, this.Ylimit/2, 'WELCOME! PRESS SPACE TO START PLAYING...', 'HorizontalAlignment', 'center', 'Color', [1 1 1],'FontWeight', 'bold', 'FontName', 'Monospaced');
 
             hUI.enableButtonsIRQ([0 0 1 1 1 1]);
-            hUI.setTimerFreq(0.01);
+            hUI.setTimerFreq(0.1);
         end
 
         function runFrame(this)
@@ -74,7 +74,6 @@ classdef MeteorShower < handle
                 if (this.gameOver == 0)
                   i = 2;
                   this.frames = this.frames + 1;
-                  tic
                   if this.movementCooldown < this.movementCooldownTime
                       this.movementCooldown = this.movementCooldown + 1;
                   else
@@ -113,10 +112,10 @@ classdef MeteorShower < handle
                   i = 2;
                   while i <= numel(this.asteroidObj)
                     if this.asteroidObj(i).posy < this.CAR.posy + 2 % the 2 is correction
-                      this.hUI.playSound('death_sound.wav');
+                      % this.hUI.playSound('death_sound.wav');
                         delete(this.asteroidObj(i).body);
                         clear this.asteroidObj(i);
-                        this.gameOver = 1;
+                        this.gameOver = 0;
                         for j = i+1:numel(this.asteroidObj)
                           this.asteroidObj(j-1) = this.asteroidObj(j);
                         end
@@ -133,7 +132,7 @@ classdef MeteorShower < handle
                     while i <= numel(this.laserObj)
                       if ((abs(this.asteroidObj(j).posy - this.laserObj(i).posy)) < 7) & (this.laserObj(i).posx == this.asteroidObj(j).posx)
                         %increase score and delete hit objects
-                        this.hUI.playSound('explosion.wav');
+                        % this.hUI.playSound('explosion.wav');
                         this.score = this.score + 10;
                         delete(this.scoreText);
                         this.scoreText = text(this.Axis, this.Xlimit*0.1, this.Ylimit*0.9, sprintf('SCORE: %d', this.score), 'FontWeight', 'bold', 'FontName', 'Monospaced', 'Color', [1 1 1]);
@@ -159,11 +158,6 @@ classdef MeteorShower < handle
                     i = 1;
                     j = j+1;
                   end
-                    % fps correction
-                  elapsedFrameTime = toc;
-                  if elapsedFrameTime<(1/this.fps)
-                    pause((1/this.fps)-elapsedFrameTime)
-                  end
                 elseif (this.gameOver)
                     this.hUI.stopSoundtrack();
                     this.gameOverText = text(this.Axis, (this.Xlimit/2), (this.Ylimit/2), {sprintf('GAME OVER! YOUR SCORE IS %d.', this.score),'PRESS ESCAPE TO QUIT'}, 'HorizontalAlignment', 'center','FontName','Monospaced', 'Color', [1 1 1], 'FontWeight', 'bold');
@@ -179,6 +173,7 @@ classdef MeteorShower < handle
         end
 
         function BtnExitPressed(this)
+            this.hUI.saveScore(this.score);
             this.hUI.backToMainMenu();
         end
 
