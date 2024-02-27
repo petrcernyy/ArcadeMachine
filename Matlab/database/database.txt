@@ -1,6 +1,2 @@
 Name,ID
 Petr,16013623223
-Honza,568741
-Barisek,238672
-Ahoj,NaN
-Barisek ,742419944

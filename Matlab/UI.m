@@ -13,65 +13,15 @@ classdef UI < handle
         % writable by this function
         function saveScore(this, Score)
 
-            if (~isempty(this.Player))
-
-                GamePath = fullfile(this.GamesPath, this.GameNames_arr(this.GameIDX));
-                scoreFile = dir(fullfile(GamePath, 'score.txt'));
+            this.mySaveScore(Score);
     
-                if (~isempty(scoreFile))
-                    
-                    fileattrib(fullfile(GamePath, 'score.txt'), '+w');
-                    scoreboard = readtable(fullfile(GamePath, 'score.txt'));
-                    idx = find(strcmp(this.Player, scoreboard.Name));
-                    if (~isempty(idx))
-                        if (Score > scoreboard.Score(idx))
-                            scoreboard(idx,:) = table({this.Player}, Score);
-                        end
-                    else
-                        scoreboard(height(scoreboard)+1,:) = table({this.Player}, Score);
-                    end
-                    
-                    scoreboard = sortrows(scoreboard, 2, 'descend');
-                    scoreboard(10:end,:) = [];
-                    sendEventToHTMLSource(this.LeaderBoard, "newData", jsonencode(scoreboard));
-                    writetable(scoreboard, fullfile(GamePath, 'score.txt'));
-                    fileattrib(fullfile(GamePath, 'score.txt'), '-w');
-    
-                else
-                    
-                    Name = {this.Player};
-                    scoreboard = table(Name, Score);
-                    sendEventToHTMLSource(this.LeaderBoard, "newData", jsonencode(scoreboard));
-                    writetable(table(Name, Score), fullfile(GamePath, 'score.txt'));
-                    fileattrib(fullfile(GamePath, 'score.txt'), '-w');
-    
-                end
-            end
-            
         end
 
         % Call this function to handle return back to main menu. Deletes
         % the isntance of current game, stops the soundtrack.
         function backToMainMenu(this)
 
-            this.stopMyTimer(Enums.SteppingTimerE);
-            this.startMyTimer(Enums.FoldersTimerE);
-
-            this.stopSoundtrack();
-
-            this.Game = [];
-            delete(this.Axes);
-            this.ControlsIRQ = [0 0 0 0 0 0];
-            this.MultiplayerFlag = 0;
-            this.Panel_Game.Visible = 'off';
-            
-            this.GameIDX = 1;
-            this.ColumnIDX = 0;
-            this.GameChosen = 0; 
-            this.sendJoystickDatatoHtml();
-            this.playSoundtrack('menu_music.mp3');
-            this.GameFlag = 0;
-     
+            this.myBackToMainMenu();
 
         end
 
@@ -223,6 +173,7 @@ classdef UI < handle
         GameFlag = 0                %Is any game running flag
         CreatingUser = 0
         CreatingUserIDX = 0
+        NoGamesFlag = 0
 
         Pos_Image = [0 0 0 0]    
         Pos_QR = [0 0 0 0]
@@ -249,24 +200,24 @@ classdef UI < handle
             % this.GamesPath = "D:\hry";
             
             this.Fig_Main = uifigure('CloseRequestFcn', @this.closeFigureMouse, 'WindowKeyPressFcn', @this.keyPressed,...
-                                    'Units','normalized', 'Position', [0 0 1 1], 'WindowState','maximized', 'WindowStyle','alwaysontop');
+                                    'Units','normalized', 'Position', [0 0 1 1], 'WindowState','fullscreen', 'WindowStyle','alwaysontop', 'Color', [0.53 0.81 0.92]);
             
-            this.Panel_Main = uipanel(this.Fig_Main,'Units', 'normalized', 'Position', [0 0 1 1], 'HitTest', 'off');
-            this.Panel_Game = uipanel(this.Fig_Main,'Units', 'normalized', 'Position', [0 0 1 1], 'Visible', 'off',...
+            this.Panel_Main = uipanel(this.Fig_Main,'Units', 'normalized', 'OuterPosition', [0 0 1 1], 'HitTest', 'off', 'BackgroundColor', [0.53 0.81 0.92]);
+            sizePanel = getpixelposition(this.Panel_Main, true);
+            this.width_Panel = sizePanel(3);
+            this.height_Panel = sizePanel(4);
+            this.Panel_Game = uipanel(this.Fig_Main,'Units', 'pixels', 'Position', [0 0 this.width_Panel this.height_Panel], 'Visible', 'off',...
                                         'BackgroundColor', [0.53 0.81 0.92]);
             this.Panel_Axis = uipanel(this.Panel_Game, 'Units','normalized',...
                                 'Position', [0.025 0.1 0.6 0.8]);
 
             this.AxesPanelSize = getpixelposition(this.Panel_Axis);
-
-            sizePanel = getpixelposition(this.Panel_Main, true);
-            this.width_Panel = sizePanel(3);
-            this.height_Panel = sizePanel(4);
+            this.AxesPanelSize = this.AxesPanelSize([3,4]);
 
             this.Loading = uihtml(this.Panel_Main, "HTMLSource", 'html/loading.html', 'Position',...
                     [0 0 this.width_Panel this.height_Panel], 'HTMLEventReceivedFcn', @this.htmldatareceived);
 
-            pause(10);
+            pause(4);
       
             this.Html = uihtml(this.Panel_Main, "HTMLSource", 'html/index.html', "Position",....
                             [0 0 this.width_Panel this.height_Panel],...
@@ -352,24 +303,30 @@ classdef UI < handle
             folders = dir(this.GamesPath);
             folders = folders([folders.isdir]);
 
-            oldLenght = length(this.GameNames_arr);
-            this.GameNames_arr = [];
+            if (~isempty(folders))
 
-            for i = 1:length(folders)
-                folderName = folders(i).name;
-                if ~strcmp(folderName, '.') && ~strcmp(folderName, '..')
-                    this.GameNames_arr = [this.GameNames_arr; convertCharsToStrings(folderName)];
+                oldLenght = length(this.GameNames_arr);
+                this.GameNames_arr = [];
+    
+                for i = 1:length(folders)
+                    folderName = folders(i).name;
+                    if ~strcmp(folderName, '.') && ~strcmp(folderName, '..')
+                        this.GameNames_arr = [this.GameNames_arr; convertCharsToStrings(folderName)];
+                    end
                 end
+    
+                this.GameNames_arr = unique(this.GameNames_arr);
+                
+                if oldLenght ~= length(this.GameNames_arr)
+                    dataToSend = [length(this.GameNames_arr); this.GameNames_arr];
+                    dataToSend = jsonencode(dataToSend);
+                    sendEventToHTMLSource(this.Html, "ValueChanged", dataToSend);
+                    this.NoGamesFlag = 1;
+                end
+            else
+                this.NoGamesFlag = 0;
+                sendEventToHTMLSource(this.Html, "ValueChanged", 0);
             end
-
-            this.GameNames_arr = unique(this.GameNames_arr);
-            
-            if oldLenght ~= length(this.GameNames_arr)
-                dataToSend = [length(this.GameNames_arr); this.GameNames_arr];
-                dataToSend = jsonencode(dataToSend);
-                sendEventToHTMLSource(this.Html, "ValueChanged", dataToSend);
-            end
-
 
         end
 
@@ -379,28 +336,34 @@ classdef UI < handle
 
             folders = dir(this.GamesPath);
             folders = folders([folders.isdir]);
-
-            for i = 1:length(folders)
-                folderName = folders(i).name;
-                if ~strcmp(folderName, '.') && ~strcmp(folderName, '..')
-                    this.GameNames_arr = [this.GameNames_arr; convertCharsToStrings(folderName)];
+            
+            if (~isempty(folders))
+                for i = 1:length(folders)
+                    folderName = folders(i).name;
+                    if ~strcmp(folderName, '.') && ~strcmp(folderName, '..')
+                        this.GameNames_arr = [this.GameNames_arr; convertCharsToStrings(folderName)];
+                    end
                 end
-            end
-
-            LogoFolder = fullfile(this.GamesPath, this.GameNames_arr(1), "logo");
-            imageFiles = dir(fullfile(LogoFolder, '*.jpg'));
-            imageFiles = [imageFiles; dir(fullfile(LogoFolder, '*.png'))];
-
-            if ~isempty(imageFiles)
-                firstImageFile = fullfile(imageFiles(1).folder, imageFiles(1).name);
-                this.Image = uiimage(this.Panel_Main, "ImageSource", firstImageFile, 'Position', this.Pos_Image, 'Visible', 'off');
+    
+                LogoFolder = fullfile(this.GamesPath, this.GameNames_arr(1), "logo");
+                imageFiles = dir(fullfile(LogoFolder, '*.jpg'));
+                imageFiles = [imageFiles; dir(fullfile(LogoFolder, '*.png'))];
+    
+                if ~isempty(imageFiles)
+                    firstImageFile = fullfile(imageFiles(1).folder, imageFiles(1).name);
+                    this.Image = uiimage(this.Panel_Main, "ImageSource", firstImageFile, 'Position', this.Pos_Image, 'Visible', 'off');
+                else
+                    this.Image = uilabel(this.Panel_Main, "Text", "  No logo found", 'Position', this.Pos_Image, 'Visible', 'off');
+                end
+    
+                dataToSend = [length(this.GameNames_arr); this.GameNames_arr];
+                dataToSend = jsonencode(dataToSend);
+                sendEventToHTMLSource(this.Html, "ValueChanged", dataToSend);
+                this.NoGamesFlag = 1;
             else
-                this.Image = uilabel(this.Panel_Main, "Text", "  No logo found", 'Position', this.Pos_Image, 'Visible', 'off');
+                sendEventToHTMLSource(this.Html, "ValueChanged", 0);
+                this.NoGamesFlag = 0;
             end
-
-            dataToSend = [length(this.GameNames_arr); this.GameNames_arr];
-            dataToSend = jsonencode(dataToSend);
-            sendEventToHTMLSource(this.Html, "ValueChanged", dataToSend);
 
 
         end
@@ -435,7 +398,7 @@ classdef UI < handle
                 this.QR = uiimage(this.Panel_Main, "ImageSource", firstQRFile, 'Position', this.Pos_QR);
             else
                 this.QR = uilabel(this.Panel_Main, "Text", "   No QR Code",'Position',...
-                                    this.Pos_QR, 'FontSize', 20);
+                                    this.Pos_QR + [30 0 0 0], 'FontSize', 20);
             end
     
             try
@@ -562,7 +525,7 @@ classdef UI < handle
                             this.Game.BtnEnterPressed();
                         end
                     end
-                case 'escape'
+                case 'q'
                     if (~this.GameFlag)
                         this.BtnExitPressed();
                     elseif (this.ControlsIRQ(Enums.BtnExit))
@@ -571,7 +534,7 @@ classdef UI < handle
                         end
                     end
 
-                case 'q'
+                case 'w'
                     this.SerialReader.setBlueLed();
                     
             end
@@ -613,7 +576,7 @@ classdef UI < handle
                 this.RepeatCounterY = 0;
                 this.stopMyTimer(Enums.RepeatTimerYE);
             end
-            if (Y > 80)
+            if (Y < 30)
                 this.RepeatCounterY = this.RepeatCounterY + 1;
                 this.stopMyTimer(Enums.RepeatTimerYE);
                 if(this.RepeatCounterY > 5)
@@ -627,7 +590,7 @@ classdef UI < handle
                     end
                 end
                 this.JoyControls(Enums.Up) = 1;
-            elseif (Y < 20)
+            elseif (Y > 80)
                 this.RepeatCounterY = this.RepeatCounterY + 1;
                 this.stopMyTimer(Enums.RepeatTimerYE);
                 if(this.RepeatCounterY > 5)
@@ -643,12 +606,12 @@ classdef UI < handle
                 this.JoyControls(Enums.Down) = 1;
             end
 
-            if (X > 50 && X < 70)
+            if (X > 30 && X < 70)
                 this.JoyControls([Enums.Left, Enums.Right]) = 0;
                 this.RepeatCounterX = 0;
                 this.stopMyTimer(Enums.RepeatTimerXE);
             end
-            if (X < 40)
+            if (X < 30)
                 this.RepeatCounterX = this.RepeatCounterX + 1;
                 this.stopMyTimer(Enums.RepeatTimerXE);
                 if(this.RepeatCounterX > 5)
@@ -734,7 +697,7 @@ classdef UI < handle
         end
 
         function BtnUpPressed(this)
-            if (~this.CreatingUser)
+             if (this.NoGamesFlag && ~this.CreatingUser)
                 if (this.ColumnIDX == 0)
                     this.GameIDX = this.GameIDX - 1;
                     if this.GameIDX <= 1
@@ -742,7 +705,7 @@ classdef UI < handle
                     end
                     this.sendJoystickDatatoHtml();
                 end
-            else
+            elseif (this.CreatingUser)
                 uicontrol(this.newUserWindowName);
                 this.CreatingUserIDX = this.CreatingUserIDX - 1;
                 if (this.CreatingUserIDX < 0)
@@ -752,7 +715,7 @@ classdef UI < handle
         end
 
         function BtnDownPressed(this)
-            if (~this.CreatingUser)
+            if (this.NoGamesFlag && ~this.CreatingUser)
                 if (this.ColumnIDX == 0)
                     this.GameIDX = this.GameIDX + 1;
                     if this.GameIDX >= length(this.GameNames_arr)
@@ -837,6 +800,46 @@ classdef UI < handle
         end
         % -----------------------------------------------------------------
         % ------------User database function-------------------------------
+
+        function mySaveScore(this, Score)
+
+            if (~isempty(this.Player))
+
+                GamePath = fullfile(this.GamesPath, this.GameNames_arr(this.GameIDX));
+                scoreFile = dir(fullfile(GamePath, 'score.txt'));
+    
+                if (~isempty(scoreFile))
+                    
+                    fileattrib(fullfile(GamePath, 'score.txt'), '+w');
+                    scoreboard = readtable(fullfile(GamePath, 'score.txt'));
+                    idx = find(strcmp(this.Player, scoreboard.Name));
+                    if (~isempty(idx))
+                        if (Score > scoreboard.Score(idx))
+                            scoreboard(idx,:) = table({this.Player}, Score);
+                        end
+                    else
+                        scoreboard(height(scoreboard)+1,:) = table({this.Player}, Score);
+                    end
+                    
+                    scoreboard = sortrows(scoreboard, 2, 'descend');
+                    scoreboard(10:end,:) = [];
+                    sendEventToHTMLSource(this.LeaderBoard, "newData", jsonencode(scoreboard));
+                    writetable(scoreboard, fullfile(GamePath, 'score.txt'));
+                    fileattrib(fullfile(GamePath, 'score.txt'), '-w');
+    
+                else
+                    
+                    Name = {this.Player};
+                    scoreboard = table(Name, Score);
+                    sendEventToHTMLSource(this.LeaderBoard, "newData", jsonencode(scoreboard));
+                    writetable(table(Name, Score), fullfile(GamePath, 'score.txt'));
+                    fileattrib(fullfile(GamePath, 'score.txt'), '-w');
+    
+                end
+            end
+
+        end
+
         function createNewUser(this)
 
             this.CreatingUser = 1;
@@ -903,6 +906,29 @@ classdef UI < handle
 
         % -----------------------------------------------------------------
         % ------------Addition functions-----------------------------------
+
+        function myBackToMainMenu(this)
+
+            this.stopMyTimer(Enums.SteppingTimerE);
+            this.startMyTimer(Enums.FoldersTimerE);
+
+            this.stopSoundtrack();
+
+            this.Game = [];
+            delete(this.Axes);
+            this.ControlsIRQ = [0 0 0 0 0 0];
+            this.MultiplayerFlag = 0;
+            this.Panel_Game.Visible = 'off';
+            
+            this.GameIDX = 1;
+            this.ColumnIDX = 0;
+            this.GameChosen = 0; 
+            this.sendJoystickDatatoHtml();
+            this.playSoundtrack('menu_music.mp3');
+            this.GameFlag = 0;
+
+        end
+
         function closeFig(this)
             
             this.SerialReader.device = [];

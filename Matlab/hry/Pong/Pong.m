@@ -39,12 +39,10 @@ classdef Pong < handle
             
             hUI.enableButtonsIRQ([1 1 0 0 1 1]);
             hUI.setTimerFreq(0.01);
-            hUI.setMultiplayer();
         end
 
         function runFrame(this)
-
-
+            
             if(this.GameStart)
                 this.Ball.update();
                 this.edgesCheck();

@@ -68,8 +68,8 @@ void loop(void){
 
   MFRC522 rfid(10, 5);
 
-  SPI.begin(); // Init SPI bus
-  rfid.PCD_Init(); // Init MFRC522 
+  //SPI.begin(); // Init SPI bus
+  //rfid.PCD_Init(); // Init MFRC522 
 
   uint8_t nuidPICC[4];
 
@@ -125,7 +125,7 @@ void loop(void){
     JoyYVal = adc_read(&JoystickY);
     JoyYVal = ((JoyYVal)/double(1023))*(double)100;
 
-    if ((rfid.PICC_IsNewCardPresent()) && (rfid.PICC_ReadCardSerial())){
+    /*if ((rfid.PICC_IsNewCardPresent()) && (rfid.PICC_ReadCardSerial())){
 
         for (byte i = 0; i < 4; i++) {
           nuidPICC[i] = rfid.uid.uidByte[i];
@@ -136,7 +136,7 @@ void loop(void){
         card_read = 1;
     }
 
-    rfid.PICC_HaltA();
+    rfid.PICC_HaltA();*/
 
     if(card_read){
       card_read = 0;

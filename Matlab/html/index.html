@@ -120,7 +120,7 @@
 
         select {
             height: 230px;
-            width: 200px;
+            width: 300px;
             overflow-y: auto;
             scrollbar-width: thin;
             scrollbar-color: transparent transparent;
@@ -274,18 +274,28 @@
             htmlComponent.addEventListener("ValueChanged", function(event) {
                 
                 const parsedData = JSON.parse(event.Data);
-                
-                const numberOfElements = parseInt(parsedData[0], 10);
-                const textValues = parsedData.slice(1, numberOfElements + 1);
-                const selectElement = document.getElementById('mySelect');
 
                 selectElement.innerHTML = '';
 
-                for (let i = 0; i <= numberOfElements; i++) {
+                if (parsedData === 0) {
+                    // Optionally, you could add a placeholder or keep it empty
+                    // For example, to keep it completely empty, just leave this block without adding any options to the select
+                    // Or to add a placeholder, uncomment the following lines:
                     const option = document.createElement('option');
-                    option.value = `option${i}`;
-                    option.textContent = textValues[i];
+                    option.value = `option${1}`;
+                    option.textContent = "No games";
                     selectElement.appendChild(option);
+                } else {
+                    const numberOfElements = parseInt(parsedData[0], 10);
+                    const textValues = parsedData.slice(1, numberOfElements + 1);
+                    const selectElement = document.getElementById('mySelect');
+                    // If numberOfElements is not 0, populate the select element with the received game names
+                    for (let i = 0; i < textValues.length; i++) {
+                        const option = document.createElement('option');
+                        option.value = `option${i + 1}`;
+                        option.textContent = textValues[i];
+                        selectElement.appendChild(option);
+                    }
                 }
                 
             });
@@ -400,11 +410,7 @@
         <div class="content-container">
             <div class="listbox-container">
                 <select id="mySelect" multiple size="5">
-                    <option id="option1" value="option1">Option 1</option>
-                    <option id="option2" value="option2">Option 2</option>
-                    <option id="option3" value="option3">Option 3</option>
-                    <option id="option4" value="option4">Option 4</option>
-                    <option id="option5" value="option5">Option 5</option>
+                    <option id="option1" value="No games">Option 1</option>
                 </select>
             </div>
             <div class="image-container"></div>

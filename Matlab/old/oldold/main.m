@@ -1,3 +1,0 @@
-clc, clear
-
-gui = GameGUI();
