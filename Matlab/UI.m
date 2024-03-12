@@ -136,6 +136,7 @@ classdef UI < handle
         newUserWindow
         newUserWindowName
         newUserWindowPanel
+        VirtualKeyboard
 
         % Game window
         Panel_Game                  %Window for playing game
@@ -193,7 +194,7 @@ classdef UI < handle
             this.Fig_Main = uifigure('CloseRequestFcn', @this.closeFigureMouse, 'WindowKeyPressFcn', @this.keyPressed,...
                                     'Units','normalized', 'Position', [0 0 1 1], 'WindowState','fullscreen', 'Color', [0.53 0.81 0.92]);
             
-            this.Panel_Main = uipanel(this.Fig_Main,'Units', 'normalized', 'OuterPosition', [0 0 1 1], 'HitTest', 'off', 'BackgroundColor', [0.53 0.81 0.92]);
+            this.Panel_Main = uipanel(this.Fig_Main,'Units', 'normalized', 'OuterPosition', [0 0 1 1], 'HitTest', 'off', 'BackgroundColor', [0.53 0.81 0.92], 'Visible', 'off');
             sizePanel = getpixelposition(this.Panel_Main, true);
             this.width_Panel = sizePanel(3);
             this.height_Panel = sizePanel(4);
@@ -205,11 +206,10 @@ classdef UI < handle
             this.AxesPanelSize = getpixelposition(this.Panel_Axis);
             this.AxesPanelSize = this.AxesPanelSize([3,4]);
 
-            this.Loading = uihtml(this.Panel_Main, "HTMLSource", 'html/loading.html', 'Position',...
+            this.Loading = uihtml(this.Fig_Main, "HTMLSource", 'html/loading.html', 'Position',...
                     [0 0 this.width_Panel this.height_Panel], 'HTMLEventReceivedFcn', @this.htmldatareceived);
 
-            pause(4);
-
+            
             set(this.Image, 'Position', this.Pos_Image);
             set(this.QR, 'Position', this.Pos_QR);      
             this.Loaded = 1;
@@ -219,9 +219,10 @@ classdef UI < handle
             this.Html = uihtml(this.Panel_Main, "HTMLSource", 'html/index.html', "Position",....
                             [0 0 this.width_Panel this.height_Panel],...
                             'HTMLEventReceivedFcn', @this.htmldatareceived);
-            this.playSoundtrack('menu_music.mp3');
+            % this.playSoundtrack('menu_music.mp3');
             this.initFolders();
             this.sendJoystickDatatoHtml();
+
             try
                 this.SerialReader = SerialReader(this);
             catch e
@@ -253,8 +254,11 @@ classdef UI < handle
             this.newUserWindow = uihtml(this.newUserWindowPanel, 'HTMLSource', 'html/usernamewindow.html',...
                 'Position', [0 0 this.width_Panel this.height_Panel]);
             this.newUserWindowName = uicontrol(this.newUserWindowPanel,'Style','edit', 'Position', [(this.width_Panel/2)-130 (this.height_Panel/2)-50 250 50], 'FontSize', 30);
+            this.VirtualKeyboard = VirtualKeyboard(this.newUserWindowPanel);
 
+            pause(4);
 
+            set(this.Panel_Main, "Visible", "on");
     
         end
 
@@ -532,6 +536,8 @@ classdef UI < handle
 
                 case 'w'
                     this.SerialReader.setBlueLed();
+                case 'g'
+                    this.databaseNewData('123456789');
                     
             end
         end
@@ -692,6 +698,8 @@ classdef UI < handle
                     end
                     this.sendJoystickDatatoHtml();
                 end
+            else
+                this.VirtualKeyboard.BtnUpPressed();
              end
         end
 
@@ -704,6 +712,8 @@ classdef UI < handle
                     end
                     this.sendJoystickDatatoHtml();
                 end
+            else
+                this.VirtualKeyboard.BtnDownPressed();
             end
         end
 
@@ -716,6 +726,8 @@ classdef UI < handle
                     end
                     this.sendJoystickDatatoHtml();
                 end
+            else
+                this.VirtualKeyboard.BtnLeftPressed();
             end
         end
 
@@ -728,6 +740,8 @@ classdef UI < handle
                     end
                     this.sendJoystickDatatoHtml();
                 end
+            else
+                this.VirtualKeyboard.BtnRightPressed();
             end
         end
 
@@ -742,18 +756,19 @@ classdef UI < handle
                 end
                 this.sendJoystickDatatoHtml();
                 this.ButtonPressed = 0;
-            elseif (this.CreatingUserIDX == 1)
-                this.CreatingUserIDX = 0;
-                this.Player = this.newUserWindowName.String;
-                this.saveNewUserName();
-                set(this.newUserWindowPanel, 'Visible', 'off');
-                sendEventToHTMLSource(this.Html, "ConsoleMessage", "Welcome " + this.Player);
-                set(this.QR, 'Visible', 'on');
-                this.CreatingUser = 0;
-                focus(this.Fig_Main);
-            elseif (this.CreatingUserIDX == 0)
-                focus(this.Fig_Main);
-                this.CreatingUserIDX = 1;
+            else
+                Key = this.VirtualKeyboard.BtnEnterPressed();
+                if (strcmp(Key, 'Save') == 1)
+                    this.Player = this.newUserWindowName.String;
+                    this.saveNewUserName();
+                    set(this.newUserWindowPanel, 'Visible', 'off');
+                    sendEventToHTMLSource(this.Html, "ConsoleMessage", "Welcome " + this.Player);
+                    set(this.QR, 'Visible', 'on');
+                    this.CreatingUser = 0;
+                    focus(this.Fig_Main);
+                else
+                    this.newUserWindowName.String = [this.newUserWindowName.String Key];
+                end
             end
         end
 
@@ -825,7 +840,6 @@ classdef UI < handle
             set(this.newUserWindowPanel, 'Visible', 'on');
             set(this.Image, 'Visible', 'off');
             set(this.QR, 'Visible', 'off');
-            uicontrol(this.newUserWindowName);
 
         end
 
@@ -877,7 +891,7 @@ classdef UI < handle
                     this.createNewUser()
                 end
                 this.stopMyTimer(Enums.LedTimerE);
-                this.SerialReader.onBlueLed();
+                % this.SerialReader.onBlueLed();
             end
 
         end
