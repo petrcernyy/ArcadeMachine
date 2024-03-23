@@ -13,7 +13,7 @@ classdef UI < handle
         % writable by this function
         function saveScore(this, Score)
 
-            this.mySaveScore(Score);
+            this.Database.mySaveScore(Score);
     
         end
 
@@ -29,9 +29,9 @@ classdef UI < handle
         % timer frequency[s], min 0.01
         function setTimerFreq(this, timerFreq)
 
-            this.SteppingTimer_Freq = timerFreq;
-            this.stopMyTimer(Enums.SteppingTimerE);
-            set(this.SteppingTimer, 'Period', this.SteppingTimer_Freq);
+            this.Timers.SteppingTimer_Freq = timerFreq;
+            this.Timers.stopMyTimer(Enums.SteppingTimerE);
+            set(this.Timers.SteppingTimer, 'Period', this.Timers.SteppingTimer_Freq);
 
         end
 
@@ -75,12 +75,6 @@ classdef UI < handle
 
         end
 
-        function toggleRedLED(this)
-
-            this.SerialReader.toggleRedLed();
-
-        end
-
         function sendJoystickValue(this)
 
             this.joyValues = 1;
@@ -96,65 +90,61 @@ classdef UI < handle
 
         function dabataseData(this, data)
 
-            this.databaseNewData(data);
+            this.Database.databaseNewData(data);
 
         end
 
     end
 
-    properties (SetAccess = private)
+    properties (Access = {?Folders, ?Timers, ?WatchDog, ?Database})
 
         Game                    %Property for holding game object
         SerialReader            %Property for serial port communication object
+        Folders                 %Property for Folders object
+        VirtualKeyboard         %Property for VirtualKeyboard object
+        Timers                  %Property for Timers object
+        WatchDog                %Property for WatchDog object
+        Database                %Property for Database object
 
-        Player
-        ID
+        Player                  %Current player name
+        ID                      %Current player ID
 
-        Fig_Main
+        Fig_Main                %Main figure
 
-        FoldersTimer
-        WatchDogTimer
-        WatchDogTimerCounter = 0
-        workerQueueConstant1
-        workerQueueConstant2
-        workerQueueClient
-        future
-        returnVal = 0
-
-        GamesPath
+        GamesPath               %Path to folder containging games
 
         % Main menu window
         Panel_Main                  %Window for main menu
-        Loading
-        Loaded = 0
-        Html
+        Loading                     %Loading window
+        Html                        %Main menu
         Image                       %Logo of game currently selected
-        QR
+        QR                          %QR code for github of current game
         GameNames_arr = []          %Names of directories in {PROJECT}/games
-        musicVolume = 30
+        musicVolume = 30            
         SoundtrackPlayer
-        newUserWindow
-        newUserWindowName
-        newUserWindowPanel
-        VirtualKeyboard
+
+        % Creating new user window
+        newUserWindow               %Window that creates new user in database           
+        newUserWindowName           %Text box for writing name
+        newUserWindowPanel          %Panel for holding virtual keyboard
+        
 
         % Game window
         Panel_Game                  %Window for playing game
-        Panel_Axis
-        SteppingTimer               %Main timer for controlling the frames of game
-        SteppingTimer_Freq = 0.8      %Frequency of stepping timer, this can be later set from settings [s]
-        RepeatTimerX
-        RepeatTimerY
-        RepeatCounterX = 0
+        Panel_Axis                  %Panel for holding axis for plotting game
+        LeaderBoard                 %Leadebord object
+
+
+        RepeatCounterX = 0          %Repeat counters for joystick controller 
         RepeatCounterY = 0
-        Sound
-        LeaderBoard
-        joyValues = 0
+
+
+        Sound                       %Hold sound
+
+        joyValues = 0               %If set to 1 the game object receives data raw data from joystick
 
         JoyControls = [0 0 0 0 0 0]
         ControlsIRQ = [0 0 0 0 0 0]
-
-        LedTimer
         
 
         % Counters and flags
@@ -163,8 +153,6 @@ classdef UI < handle
         GameChosen = 0              %Indicates whether in main menu a game has been chosen
         ButtonPressed = 0           %Indicates a pressed button for html
         GameFlag = 0                %Is any game running flag
-        CreatingUser = 0
-        CreatingUserIDX = 0
         NoGamesFlag = 0
 
         Pos_Image = [0 0 0 0]    
@@ -183,7 +171,7 @@ classdef UI < handle
         end
     end
 
-    methods (Access = private)
+    methods (Access = {?Folders, ?Timers, ?WatchDog, ?Database})
         %  ------------Methods for UI--------------------------------------
 
         function this = UI()
@@ -212,7 +200,6 @@ classdef UI < handle
             
             set(this.Image, 'Position', this.Pos_Image);
             set(this.QR, 'Position', this.Pos_QR);      
-            this.Loaded = 1;
             set(this.Image, 'Visible', 'on');
             set(this.QR, 'Visible', 'on'); 
       
@@ -220,7 +207,13 @@ classdef UI < handle
                             [0 0 this.width_Panel this.height_Panel],...
                             'HTMLEventReceivedFcn', @this.htmldatareceived);
             % this.playSoundtrack('menu_music.mp3');
-            this.initFolders();
+
+            this.Timers = Timers(this);
+
+            this.Folders = Folders(this);
+
+            this.Timers.startMyTimer(Enums.FoldersTimerE);
+
             this.sendJoystickDatatoHtml();
 
             try
@@ -230,25 +223,10 @@ classdef UI < handle
                 sendEventToHTMLSource(this.Html, "ConsoleMessage", ErrorMessage);
             end 
 
-            this.FoldersTimer = timer('ExecutionMode', 'fixedRate', 'Period', 1, ...
-                                'TimerFcn', @(~,~) this.checkForNewFolder);
-
-            this.SteppingTimer = timer('ExecutionMode', 'fixedRate', 'Period',this.SteppingTimer_Freq, ...
-                                 'TimerFcn', @(~,~) this.stepGame);
-            this.RepeatTimerX = timer('ExecutionMode', 'fixedRate', 'Period',0.1, ...
-                                 'TimerFcn', @(~,~) this.joystickRepeatX);
-            this.RepeatTimerY = timer('ExecutionMode', 'fixedRate', 'Period',0.1, ...
-                                 'TimerFcn', @(~,~) this.joystickRepeatY);
-            this.LedTimer = timer('ExecutionMode', 'fixedRate', 'Period',1, ...
-                                 'TimerFcn', @(~,~) this.toggleLED);
-            this.startMyTimer(Enums.LedTimerE);
-            this.startMyTimer(Enums.FoldersTimerE);
-    
-            this.WatchDogTimer = timer('ExecutionMode', 'fixedRate', 'Period', 2, ...
-                                'TimerFcn', @(~,~) this.WatchDogUpdate);
-
-            this.startParallelTask();
-            this.startMyTimer(Enums.WatchDogTimerE);
+            this.Database = Database(this);
+           
+            this.WatchDog = WatchDog(this);
+            this.Timers.startMyTimer(Enums.WatchDogTimerE);
 
             this.newUserWindowPanel = uipanel(this.Panel_Main,'Units', 'normalized', 'Position', [0 0 1 1], 'Visible', 'off');
             this.newUserWindow = uihtml(this.newUserWindowPanel, 'HTMLSource', 'html/usernamewindow.html',...
@@ -262,153 +240,6 @@ classdef UI < handle
     
         end
 
-        function toggleLED(this, ~, ~)
-
-            % this.SerialReader.toggleBlueLed();
-
-        end
-
-        function startParallelTask(this)
-
-            this.workerQueueConstant1 = parallel.pool.DataQueue;
-            afterEach(this.workerQueueConstant1, @this.ReturnValueUpdate);
-            this.workerQueueConstant2 = parallel.pool.PollableDataQueue;
-            this.future = parfeval(@WatchDogTimer,0,this.workerQueueConstant1,this.workerQueueConstant2);
-            this.workerQueueClient = poll(this.workerQueueConstant2,10);
-
-        end
-
-        function WatchDogUpdate(this)
-
-            if (this.WatchDogTimerCounter == 1)
-                this.WatchDogTimerCounter = 0;
-            elseif (this.WatchDogTimerCounter == 0)
-                this.WatchDogTimerCounter = 1;
-            end
-            send(this.workerQueueClient, this.WatchDogTimerCounter);
-
-        end
-
-        function ReturnValueUpdate(this, data)
-
-            this.returnVal = data;
-
-        end
-
-        function checkForNewFolder(this)
-
-            folders = dir(this.GamesPath);
-            folders = folders([folders.isdir]);
-
-            if (~isempty(folders))
-
-                oldLenght = length(this.GameNames_arr);
-                this.GameNames_arr = [];
-    
-                for i = 1:length(folders)
-                    folderName = folders(i).name;
-                    if ~strcmp(folderName, '.') && ~strcmp(folderName, '..')
-                        this.GameNames_arr = [this.GameNames_arr; convertCharsToStrings(folderName)];
-                    end
-                end
-    
-                this.GameNames_arr = unique(this.GameNames_arr);
-                
-                if oldLenght ~= length(this.GameNames_arr)
-                    dataToSend = [length(this.GameNames_arr); this.GameNames_arr];
-                    dataToSend = jsonencode(dataToSend);
-                    sendEventToHTMLSource(this.Html, "ValueChanged", dataToSend);
-                    this.NoGamesFlag = 1;
-                end
-            else
-                this.NoGamesFlag = 0;
-                sendEventToHTMLSource(this.Html, "ValueChanged", 0);
-            end
-
-        end
-
-        function initFolders(this)
-
-            this.GameNames_arr = [];
-
-            folders = dir(this.GamesPath);
-            folders = folders([folders.isdir]);
-            
-            if (~isempty(folders))
-                for i = 1:length(folders)
-                    folderName = folders(i).name;
-                    if ~strcmp(folderName, '.') && ~strcmp(folderName, '..')
-                        this.GameNames_arr = [this.GameNames_arr; convertCharsToStrings(folderName)];
-                    end
-                end
-    
-                LogoFolder = fullfile(this.GamesPath, this.GameNames_arr(1), "logo");
-                imageFiles = dir(fullfile(LogoFolder, '*.jpg'));
-                imageFiles = [imageFiles; dir(fullfile(LogoFolder, '*.png'))];
-    
-                if ~isempty(imageFiles)
-                    firstImageFile = fullfile(imageFiles(1).folder, imageFiles(1).name);
-                    this.Image = uiimage(this.Panel_Main, "ImageSource", firstImageFile, 'Position', this.Pos_Image, 'Visible', 'off');
-                else
-                    this.Image = uilabel(this.Panel_Main, "Text", "  No logo found", 'Position', this.Pos_Image, 'Visible', 'off');
-                end
-    
-                dataToSend = [length(this.GameNames_arr); this.GameNames_arr];
-                dataToSend = jsonencode(dataToSend);
-                sendEventToHTMLSource(this.Html, "ValueChanged", dataToSend);
-                this.NoGamesFlag = 1;
-            else
-                sendEventToHTMLSource(this.Html, "ValueChanged", 0);
-                this.NoGamesFlag = 0;
-            end
-
-
-        end
-
-        function logoChange(this, name)
-
-            if(~(isempty(this.Image)))
-                delete(this.Image);
-            end
-            if(~(isempty(this.QR)))
-                delete(this.QR)
-            end
-
-            LogoFolder = fullfile(this.GamesPath, name, "logo");
-            imageFiles = dir(fullfile(LogoFolder, '*.jpg'));
-            imageFiles = [imageFiles; dir(fullfile(LogoFolder, '*.png'))];
-
-            if ~isempty(imageFiles)
-                firstImageFile = fullfile(imageFiles(1).folder, imageFiles(1).name);
-                this.Image = uiimage(this.Panel_Main, "ImageSource", firstImageFile, 'Position', this.Pos_Image);
-            else
-                this.Image = uilabel(this.Panel_Main, "Text", "   No logo found",'Position',...
-                                    this.Pos_Image, 'FontSize', 40);
-            end
-
-            QrFolder = fullfile(this.GamesPath, name, "qrcode");
-            QrimageFiles = dir(fullfile(QrFolder, '*.jpg'));
-            QrimageFiles = [QrimageFiles; dir(fullfile(QrFolder, '*.png'))];
-
-            if ~isempty(QrimageFiles)
-                firstQRFile = fullfile(QrimageFiles(1).folder, QrimageFiles(1).name);
-                this.QR = uiimage(this.Panel_Main, "ImageSource", firstQRFile, 'Position', this.Pos_QR);
-            else
-                this.QR = uilabel(this.Panel_Main, "Text", "   No QR Code",'Position',...
-                                    this.Pos_QR + [30 0 0 0], 'FontSize', 20);
-            end
-    
-            try
-                nameOpen = fopen(fullfile(QrFolder, 'author.txt'));
-                name = fgetl(nameOpen);
-                sendEventToHTMLSource(this.Html, "AuthorChanged", name);
-                fclose(nameOpen);
-            catch
-                sendEventToHTMLSource(this.Html, "AuthorChanged", '-');
-            end
-
-        end
-
         function htmldatareceived(this, ~, event)
             name = event.HTMLEventName;
             if strcmp(name,'ButtonStartClicked')
@@ -416,15 +247,13 @@ classdef UI < handle
             elseif strcmp(name, 'ButtonExitClicked')
                 this.closeFig();
             elseif strcmp(name, 'ListBoxValueChanged')
-                if (this.Loaded)
-                    this.logoChange(event.HTMLEventData);
-                end
+                this.Folders.logoChange(event.HTMLEventData);
             elseif strcmp(name, 'PosOfPicture')
                 data = jsondecode(event.HTMLEventData);
                 this.Pos_Image = [data.left+10 data.bottom data.width-15 data.height];
                 this.Pos_QR = [data.leftQR+10 data.bottomQR data.widthQR-15 data.heightQR];
             elseif strcmp(name, 'LoadingComplete')
-                delete(this.Loading);
+                this.Loading.Visible = 'off';
             elseif strcmp(name, 'UserName')
                 this.Player = event.HTMLEventData;
                 sendEventToHTMLSource(this.Html, "ConsoleMessage", this.Player);
@@ -436,6 +265,15 @@ classdef UI < handle
 
             addpath(fullfile(this.GamesPath, this.GameNames_arr(this.GameIDX)));
             try
+                
+                this.Loading.Visible = 'on';
+               
+                this.Axes = uiaxes(this.Panel_Axis, "XLim", [0 100], "YLim", [0 100], 'Units','normalized',...
+                                'Position', [0 0 1 1], 'XTick', [], 'YTick', []);
+                disableDefaultInteractivity(this.Axes);
+
+                this.Game = feval(this.GameNames_arr(this.GameIDX), this);
+
                 this.LeaderBoard = uihtml(this.Panel_Game, "HTMLSource", 'html/leaderboard.html',...
                     'Position', [this.width_Panel-400 300 400 this.height_Panel-50], 'Visible','off');
                 try
@@ -443,26 +281,23 @@ classdef UI < handle
                     sendEventToHTMLSource(this.LeaderBoard, "newData", jsonencode(scoreboard));
                     pause(1);
                     sendEventToHTMLSource(this.LeaderBoard, "newData", jsonencode(scoreboard));
-                catch
+                    set(this.LeaderBoard, 'Visible', 'on');
+                catch e
+                    ErrorMessage = jsonencode(e.message);
+                    sendEventToHTMLSource(this.Html, "ConsoleMessage", ErrorMessage);
                 end
 
+                this.Loading.Visible = 'off';
                 this.Panel_Game.Visible = 'on';
 
-                this.Axes = uiaxes(this.Panel_Axis, "XLim", [0 100], "YLim", [0 100], 'Units','normalized',...
-                                'Position', [0 0 1 1], 'XTick', [], 'YTick', []);
-                disableDefaultInteractivity(this.Axes);
-
-                this.Game = feval(this.GameNames_arr(this.GameIDX), this);
-
-                set(this.LeaderBoard, 'Visible', 'on');
-
-                this.startMyTimer(Enums.SteppingTimerE);
-                this.stopMyTimer(Enums.FoldersTimerE);
+                this.Timers.startMyTimer(Enums.SteppingTimerE);
+                this.Timers.stopMyTimer(Enums.FoldersTimerE);
     
                 this.GameFlag = 1;
             catch e
                 ErrorMessage = jsonencode(e.message);
                 sendEventToHTMLSource(this.Html, "ConsoleMessage", ErrorMessage);
+                this.Loading.Visible = 'off';
                 this.backToMainMenu();
             end
                 
@@ -534,10 +369,8 @@ classdef UI < handle
                         end
                     end
 
-                case 'w'
-                    this.SerialReader.setBlueLed();
                 case 'g'
-                    this.databaseNewData('123456789');
+                    this.Database.databaseNewData('123456789');
                     
             end
         end
@@ -569,17 +402,17 @@ classdef UI < handle
                 if (Y > 30 && Y < 70)
                     this.JoyControls([Enums.Up, Enums.Down]) = 0;
                     this.RepeatCounterY = 0;
-                    this.stopMyTimer(Enums.RepeatTimerYE);
+                    this.Timers.stopMyTimer(Enums.RepeatTimerYE);
                 end
                 if (Y < 30)
                     this.RepeatCounterY = this.RepeatCounterY + 1;
-                    this.stopMyTimer(Enums.RepeatTimerYE);
+                    this.Timers.stopMyTimer(Enums.RepeatTimerYE);
                     if(this.RepeatCounterY > 10)
-                        set(this.RepeatTimerY, 'Period', 0.1);
-                        this.startMyTimer(Enums.RepeatTimerYE);
+                        set(this.Timers.RepeatTimerY, 'Period', 0.1);
+                        this.Timers.startMyTimer(Enums.RepeatTimerYE);
                     elseif(this.RepeatCounterY > 2)
-                        set(this.RepeatTimerY, 'Period', 0.5);
-                        this.startMyTimer(Enums.RepeatTimerYE);
+                        set(this.Timers.RepeatTimerY, 'Period', 0.5);
+                        this.Timers.startMyTimer(Enums.RepeatTimerYE);
                     elseif(this.RepeatCounterY == 1)
                         if (~this.GameFlag)
                             this.BtnUpPressed();
@@ -590,14 +423,14 @@ classdef UI < handle
                     this.JoyControls(Enums.Up) = 1;
                 elseif (Y > 80)
                     this.RepeatCounterY = this.RepeatCounterY + 1;
-                    this.stopMyTimer(Enums.RepeatTimerYE);
+                    this.Timers.stopMyTimer(Enums.RepeatTimerYE);
                     if(this.RepeatCounterY > 10)
-                        this.stopMyTimer(Enums.RepeatTimerYE);
-                        set(this.RepeatTimerY, 'Period', 0.1);
-                        this.startMyTimer(Enums.RepeatTimerYE);
+                        this.Timers.stopMyTimer(Enums.RepeatTimerYE);
+                        set(this.Timers.RepeatTimerY, 'Period', 0.1);
+                        this.Timers.startMyTimer(Enums.RepeatTimerYE);
                     elseif(this.RepeatCounterY > 2)
-                        set(this.RepeatTimerY, 'Period', 0.5);
-                        this.startMyTimer(Enums.RepeatTimerYE);
+                        set(this.Timers.RepeatTimerY, 'Period', 0.5);
+                        this.Timers.startMyTimer(Enums.RepeatTimerYE);
                     elseif(this.RepeatCounterY == 1)
                         if (~this.GameFlag)
                             this.BtnDownPressed();
@@ -611,17 +444,17 @@ classdef UI < handle
                 if (X > 30 && X < 70)
                     this.JoyControls([Enums.Left, Enums.Right]) = 0;
                     this.RepeatCounterX = 0;
-                    this.stopMyTimer(Enums.RepeatTimerXE);
+                    this.Timers.stopMyTimer(Enums.RepeatTimerXE);
                 end
                 if (X < 30)
                     this.RepeatCounterX = this.RepeatCounterX + 1;
-                    this.stopMyTimer(Enums.RepeatTimerXE);
+                    this.Timers.stopMyTimer(Enums.RepeatTimerXE);
                     if(this.RepeatCounterX > 10)
-                        set(this.RepeatTimerX, 'Period', 0.1);
-                        this.startMyTimer(Enums.RepeatTimerXE);
+                        set(this.Timers.RepeatTimerX, 'Period', 0.1);
+                        this.Timers.startMyTimer(Enums.RepeatTimerXE);
                     elseif(this.RepeatCounterX > 2)
-                        set(this.RepeatTimerX, 'Period', 0.5);
-                        this.startMyTimer(Enums.RepeatTimerXE);
+                        set(this.Timers.RepeatTimerX, 'Period', 0.5);
+                        this.Timers.startMyTimer(Enums.RepeatTimerXE);
                     elseif(this.RepeatCounterX == 1)
                         if (~this.GameFlag)
                             this.BtnLeftPressed();
@@ -632,13 +465,13 @@ classdef UI < handle
                     this.JoyControls(Enums.Left) = 1;
                 elseif (X > 80)
                     this.RepeatCounterX = this.RepeatCounterX + 1;
-                    this.stopMyTimer(Enums.RepeatTimerXE);
+                    this.Timers.stopMyTimer(Enums.RepeatTimerXE);
                     if(this.RepeatCounterX > 10)
-                        set(this.RepeatTimerX, 'Period', 0.1);
-                        this.startMyTimer(Enums.RepeatTimerXE);
+                        set(this.Timers.RepeatTimerX, 'Period', 0.1);
+                        this.Timers.startMyTimer(Enums.RepeatTimerXE);
                     elseif(this.RepeatCounterX > 2)
-                        set(this.RepeatTimerX, 'Period', 0.5);
-                        this.startMyTimer(Enums.RepeatTimerXE);
+                        set(this.Timers.RepeatTimerX, 'Period', 0.5);
+                        this.Timers.startMyTimer(Enums.RepeatTimerXE);
                     elseif(this.RepeatCounterX == 1)
                         if (~this.GameFlag)
                             this.BtnRightPressed();
@@ -690,7 +523,7 @@ classdef UI < handle
         end
 
         function BtnUpPressed(this)
-             if (this.NoGamesFlag && ~this.CreatingUser)
+             if (this.NoGamesFlag && ~this.Database.CreatingUser)
                 if (this.ColumnIDX == 0)
                     this.GameIDX = this.GameIDX - 1;
                     if this.GameIDX <= 1
@@ -704,7 +537,7 @@ classdef UI < handle
         end
 
         function BtnDownPressed(this)
-            if (this.NoGamesFlag && ~this.CreatingUser)
+            if (this.NoGamesFlag && ~this.Database.CreatingUser)
                 if (this.ColumnIDX == 0)
                     this.GameIDX = this.GameIDX + 1;
                     if this.GameIDX >= length(this.GameNames_arr)
@@ -718,7 +551,7 @@ classdef UI < handle
         end
 
         function BtnLeftPressed(this)
-            if (~this.CreatingUser)
+            if (~this.Database.CreatingUser)
                 if (this.GameChosen)
                     this.ColumnIDX = this.ColumnIDX - 1;
                     if this.ColumnIDX <= 1
@@ -732,7 +565,7 @@ classdef UI < handle
         end
 
         function BtnRightPressed(this)
-            if (~this.CreatingUser)
+            if (~this.Database.CreatingUser)
                 if (this.GameChosen)
                     this.ColumnIDX = this.ColumnIDX + 1;
                     if this.ColumnIDX >= 2
@@ -746,7 +579,7 @@ classdef UI < handle
         end
 
         function BtnEnterPressed(this)
-            if (~this.CreatingUser)
+            if (~this.Database.CreatingUser)
                 if (this.GameChosen == 0)
                     this.GameChosen = 1;
                     this.sendJoystickDatatoHtml();
@@ -760,11 +593,11 @@ classdef UI < handle
                 Key = this.VirtualKeyboard.BtnEnterPressed();
                 if (strcmp(Key, 'Save') == 1)
                     this.Player = this.newUserWindowName.String;
-                    this.saveNewUserName();
+                    this.Database.saveNewUserName();
                     set(this.newUserWindowPanel, 'Visible', 'off');
                     sendEventToHTMLSource(this.Html, "ConsoleMessage", "Welcome " + this.Player);
                     set(this.QR, 'Visible', 'on');
-                    this.CreatingUser = 0;
+                    this.Database.CreatingUser = 0;
                     focus(this.Fig_Main);
                 else
                     this.newUserWindowName.String = [this.newUserWindowName.String Key];
@@ -773,7 +606,7 @@ classdef UI < handle
         end
 
         function BtnExitPressed(this)
-            if (~this.CreatingUser)
+            if (~this.Database.CreatingUser)
                 if this.GameChosen == 1
                     this.GameChosen = 0;
                     this.ColumnIDX = 0;
@@ -781,7 +614,7 @@ classdef UI < handle
                 end
             else
                 set(this.newUserWindowPanel, 'Visible', 'off');
-                this.CreatingUser = 0;
+                this.Database.CreatingUser = 0;
             end
         end
 
@@ -792,118 +625,14 @@ classdef UI < handle
             sendEventToHTMLSource(this.Html, "JoystickData", dataToSend);
 
         end
-        % -----------------------------------------------------------------
-        % ------------User database function-------------------------------
-
-        function mySaveScore(this, Score)
-
-            if (~isempty(this.Player))
-
-                GamePath = fullfile(this.GamesPath, this.GameNames_arr(this.GameIDX));
-                scoreFile = dir(fullfile(GamePath, 'score.txt'));
-    
-                if (~isempty(scoreFile))
-                    
-                    fileattrib(fullfile(GamePath, 'score.txt'), '+w');
-                    scoreboard = readtable(fullfile(GamePath, 'score.txt'));
-                    idx = find(strcmp(this.Player, scoreboard.Name));
-                    if (~isempty(idx))
-                        if (Score > scoreboard.Score(idx))
-                            scoreboard(idx,:) = table({this.Player}, Score);
-                        end
-                    else
-                        scoreboard(height(scoreboard)+1,:) = table({this.Player}, Score);
-                    end
-                    
-                    scoreboard = sortrows(scoreboard, 2, 'descend');
-                    scoreboard(10:end,:) = [];
-                    sendEventToHTMLSource(this.LeaderBoard, "newData", jsonencode(scoreboard));
-                    writetable(scoreboard, fullfile(GamePath, 'score.txt'));
-                    fileattrib(fullfile(GamePath, 'score.txt'), '-w');
-    
-                else
-                    
-                    Name = {this.Player};
-                    scoreboard = table(Name, Score);
-                    sendEventToHTMLSource(this.LeaderBoard, "newData", jsonencode(scoreboard));
-                    writetable(table(Name, Score), fullfile(GamePath, 'score.txt'));
-                    fileattrib(fullfile(GamePath, 'score.txt'), '-w');
-    
-                end
-            end
-
-        end
-
-        function createNewUser(this)
-
-            this.CreatingUser = 1;
-            set(this.newUserWindowPanel, 'Visible', 'on');
-            set(this.Image, 'Visible', 'off');
-            set(this.QR, 'Visible', 'off');
-
-        end
-
-        function saveNewUserName(this)
-            databaseFolder = fullfile(pwd,'database');
-            fileattrib(fullfile(databaseFolder, 'database.txt'), '+w');
-            database = readtable(fullfile(databaseFolder, 'database.txt'));
-            database = [database; table({this.Player}, str2double(this.ID), 'VariableNames', {'Name', 'ID'})];
-            writetable(database, fullfile(databaseFolder, 'database.txt'));
-            fileattrib(fullfile(databaseFolder, 'database.txt'), '-w');
-        end
-
-        function databaseNewData(this, data)
-
-
-            databaseFolder = fullfile(pwd,'database');
-            fileattrib(fullfile(databaseFolder, 'database.txt'), '+w');
-            database = readtable(fullfile(databaseFolder, 'database.txt'));
-            idx = find(strcmp(strrep(string(num2str(database.ID)),' ',''), data),1);
-            if (~(isempty(idx)))
-                if (~isempty(this.Player) && (strcmp(this.ID, data) == 0))
-                    sendEventToHTMLSource(this.Html, "ConsoleMessage", "Goodbye " + this.Player);
-                    this.Player = [];
-                    this.Player = database.Name{idx};
-                    this.ID = data;
-                    this.stopMyTimer(Enums.LedTimerE);
-                    this.SerialReader.onBlueLed();
-                    sendEventToHTMLSource(this.Html, "ConsoleMessage", "Welcome " + this.Player);
-                elseif (isempty(this.Player))
-                    this.Player = database.Name{idx};
-                    this.ID = data;
-                    sendEventToHTMLSource(this.Html, "ConsoleMessage", "Welcome " + this.Player);
-                    this.stopMyTimer(Enums.LedTimerE);
-                    this.SerialReader.onBlueLed();
-                else
-                    sendEventToHTMLSource(this.Html, "ConsoleMessage", "Goodbye " + this.Player);
-                    this.ID = [];
-                    this.Player = [];
-                    this.startMyTimer(Enums.LedTimerE);
-                end
-            else
-                if (isempty(this.Player))
-                    this.ID = data;
-                    this.createNewUser()
-                else
-                    sendEventToHTMLSource(this.Html, "ConsoleMessage", "Goodbye " + this.Player);
-                    this.Player = [];
-                    this.ID = data;
-                    this.createNewUser()
-                end
-                this.stopMyTimer(Enums.LedTimerE);
-                % this.SerialReader.onBlueLed();
-            end
-
-        end
-
 
         % -----------------------------------------------------------------
         % ------------Addition functions-----------------------------------
 
         function myBackToMainMenu(this)
 
-            this.stopMyTimer(Enums.SteppingTimerE);
-            this.startMyTimer(Enums.FoldersTimerE);
+            this.Timers.stopMyTimer(Enums.SteppingTimerE);
+            this.Timers.startMyTimer(Enums.FoldersTimerE);
 
             this.stopSoundtrack();
 
@@ -925,12 +654,11 @@ classdef UI < handle
         function closeFig(this)
             
             this.SerialReader.device = [];
-            this.stopMyTimer(Enums.SteppingTimerE);
-            this.stopMyTimer(Enums.FoldersTimerE);
-            this.stopMyTimer(Enums.WatchDogTimerE);
-            this.stopMyTimer(Enums.LedTimerE);
+            this.Timers.stopMyTimer(Enums.SteppingTimerE);
+            this.Timers.stopMyTimer(Enums.FoldersTimerE);
+            this.Timers.stopMyTimer(Enums.WatchDogTimerE);
             this.stopSoundtrack();
-            cancel(this.future);
+            cancel(this.WatchDog.future);
             delete(gcp('nocreate'))
             delete(this.Fig_Main);
 
@@ -942,63 +670,6 @@ classdef UI < handle
 
         end
 
-        function startMyTimer(this, index)
-            switch(index)
-                case Enums.FoldersTimerE
-                    if(strcmp(this.FoldersTimer.Running, 'off'))
-                        start(this.FoldersTimer);
-                    end
-                case Enums.SteppingTimerE
-                    if(strcmp(this.SteppingTimer.Running, 'off'))
-                        start(this.SteppingTimer);
-                    end
-                case Enums.RepeatTimerXE
-                    if(strcmp(this.RepeatTimerX.Running, 'off'))
-                        start(this.RepeatTimerX);
-                    end
-                case Enums.RepeatTimerYE
-                    if(strcmp(this.RepeatTimerY.Running, 'off'))
-                        start(this.RepeatTimerY);
-                    end
-                case Enums.WatchDogTimerE
-                    if(strcmp(this.WatchDogTimer.Running, 'off'))
-                        start(this.WatchDogTimer);
-                    end
-                case Enums.LedTimerE
-                    if(strcmp(this.LedTimer.Running, 'off'))
-                        start(this.LedTimer);
-                    end
-            end
-        end
-
-        function stopMyTimer(this, index)
-            switch(index)
-                case Enums.FoldersTimerE
-                    if(strcmp(this.FoldersTimer.Running, 'on'))
-                        stop(this.FoldersTimer);
-                    end
-                case Enums.SteppingTimerE
-                    if(strcmp(this.SteppingTimer.Running, 'on'))
-                        stop(this.SteppingTimer);
-                    end
-                case Enums.RepeatTimerXE
-                    if(strcmp(this.RepeatTimerX.Running, 'on'))
-                        stop(this.RepeatTimerX);
-                    end
-                case Enums.RepeatTimerYE
-                    if(strcmp(this.RepeatTimerY.Running, 'on'))
-                        stop(this.RepeatTimerY);
-                    end
-                case Enums.WatchDogTimerE
-                    if(strcmp(this.WatchDogTimer.Running, 'on'))
-                        stop(this.WatchDogTimer);
-                    end
-                case Enums.LedTimerE
-                    if(strcmp(this.LedTimer.Running, 'on'))
-                        stop(this.LedTimer);
-                    end
-            end
-        end
         % -----------------------------------------------------------------
     end
 end

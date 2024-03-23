@@ -1,2 +1,3 @@
 Name,Score
 Petr,440
+KLM,0

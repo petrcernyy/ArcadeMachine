@@ -115,7 +115,7 @@ classdef MeteorShower < handle
                       % this.hUI.playSound('death_sound.wav');
                         delete(this.asteroidObj(i).body);
                         clear this.asteroidObj(i);
-                        this.gameOver = 0;
+                        this.gameOver = 1;
                         for j = i+1:numel(this.asteroidObj)
                           this.asteroidObj(j-1) = this.asteroidObj(j);
                         end

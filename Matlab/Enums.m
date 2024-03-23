@@ -17,6 +17,5 @@ classdef Enums < uint8
         RepeatTimerYE (14)
         WatchDogTimerE (15)
         LedTimerE (16)
-
     end
 end

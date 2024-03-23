@@ -161,31 +161,12 @@
         <table id="leaderboard-table"></table>
       </div>
 
-      <script type="text/javascript">  
-      
-      const initialData = [
-          [1, 'First', 200],
-          [2, 'Second', 150],
-          // ... add more rows as needed
-      ];
-
-      // Assuming this function is to be called to setup the component
-      // Let's directly call updateLeaderboard with initialData
-      updateLeaderboard(initialData);
-
-      htmlComponent.addEventListener("newData", function(event) {
-          var jsonData = JSON.parse(event.Data);
-
-          var formattedData = jsonData.map(function(item, index) {
-              return [index + 1, item.Name, item.Score];
-          });
-
-          updateLeaderboard(formattedData);
+      <script type="text/javascript">      
 
         function setup(htmlComponent) { 
               const jsonData = [
-              [1, 'First', 200],
-              [2, 'Second', 150],
+              [1, 'Petr Cerny', 200],
+              [2, 'John Doe', 150],
               // ... add more rows as needed
             ];
 
