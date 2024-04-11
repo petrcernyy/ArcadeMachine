@@ -64,6 +64,7 @@ typedef enum{
 	collision,
 	timeout,
 	ok,
+	error,
 
 }RFID_Status;
 
@@ -72,7 +73,9 @@ typedef struct{
     const gpio_pin CE;
     const gpio_pin RST;
 
-    uint8_t Uid[4];
+    uint8_t Uid[10];
+	uint8_t size;
+	uint8_t sak;
 
 }MFRC_t;
 
@@ -83,7 +86,7 @@ void mfrc_read_register(MFRC_t *mfrc, MFRC_Reg reg, uint8_t count, uint8_t *valu
 void mfrc_set_bitmask(MFRC_t *mfrc, MFRC_Reg reg, uint8_t mask);
 void mfrc_clear_bitmask(MFRC_t *mfrc, MFRC_Reg reg, uint8_t mask);
 
-uint8_t mfrc_calculate_crc(MFRC_t *mfrc, uint8_t *data, uint8_t dataLen, uint8_t *response);
+RFID_Status mfrc_calculate_crc(MFRC_t *mfrc, uint8_t *data, uint8_t dataLen, uint8_t *response);
 
 void mfrc_init(MFRC_t *mfrc);
 void mfrc_reset(MFRC_t *mfrc);

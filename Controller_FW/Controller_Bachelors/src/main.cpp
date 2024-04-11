@@ -78,7 +78,7 @@ void loop(void){
 
   mfrc_init(&mfrc);
 
-  uint8_t nuidPICC[4];
+  uint8_t nuidPICC[10];
 
   i = 0;
   rec_flag = 0;
@@ -124,16 +124,17 @@ void loop(void){
 
   while(1){
 
-    if(rec_flag)
-    {
-      rec_flag = 0;
-      led_control(receive);
-    }
+    //if(rec_flag)
+    //{
+    //  rec_flag = 0;
+    //}
 
-    JoyXVal = adc_read(&JoystickX);
-    JoyXVal = ((JoyXVal)/double(1023))*(double)100;
-    JoyYVal = adc_read(&JoystickY);
-    JoyYVal = ((JoyYVal)/double(1023))*(double)100;
+    //uart_transmit_string("AHOJ");
+
+    //JoyXVal = adc_read(&JoystickX);
+    //JoyXVal = ((JoyXVal)/double(1023))*(double)100;
+    //JoyYVal = adc_read(&JoystickY);
+    //JoyYVal = ((JoyYVal)/double(1023))*(double)100;
 
     req = mfrc_request_A(&mfrc);
     
@@ -156,58 +157,16 @@ void loop(void){
     if(card_read){
       card_read = 0;
       uart_transmit_string(help);
-      for (byte i = 0; i < 4; i++) {
+      for (byte i = 0; i < 10; i++) {
         nuidPICC[i] = 0;
       }
       nuidChar[0] = '\0';
       help[2] = '\0';
     }
     else{
-      sprintf(Values, "8|%03d||%03d||%01d||%01d", JoyXVal, JoyYVal, buttons.ButtonEnterState, buttons.ButtonExitState);
-      buttons.ButtonEnterState = 0;
-      buttons.ButtonExitState = 0;
-      uart_transmit_string(Values);
+      uart_transmit_string("AHOJ");
     }
 
     delay(50);
-  }
-}
-
-void led_control(char* index)
-{
-  switch(*index)
-  {
-    case('0'):
-      if(gpio_read(&red_led))
-      {
-        gpio_write(&red_led, 0);
-      }
-      else
-      {
-        gpio_write(&red_led, 1);
-      }
-      break;
-    case('1'):
-      gpio_write(&red_led, 1);
-      break;
-    case('2'):
-      gpio_write(&red_led, 0);
-      break;
-    case('3'):
-      if(gpio_read(&blue_led))
-      {
-        gpio_write(&blue_led, 0);
-      }
-      else
-      {
-        gpio_write(&blue_led, 1);
-      }
-      break;
-    case('4'):
-      gpio_write(&blue_led, 1);
-      break;
-    case('5'):
-      gpio_write(&blue_led, 0);
-      break;
   }
 }
