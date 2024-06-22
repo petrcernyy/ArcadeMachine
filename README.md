@@ -1,2 +1,2 @@
 # GamesUI
-![screenshot](/Pictures/Device.png =100x20)
+![screenshot](/Pictures/Device.png){ width=50% }
