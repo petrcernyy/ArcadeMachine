@@ -1,2 +1,2 @@
 # GamesUI
-![screenshot](/Pictures/Device.png){ width=50% }
+<img src="/Pictures/Device.png" alt="screenshot" width="300" height="200">
