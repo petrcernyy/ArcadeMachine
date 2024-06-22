@@ -1,7 +1,0 @@
-(module "1N4001W-T" (layer F.Cu) (tedit 5B0D3C36)
-  (fp_line (start -2.25000 0.90000) (end -0.95000 0.90000) (layer F.SilkS) (width 0.254))
-  (fp_line (start -2.45000 0.70000) (end -2.25000 0.90000) (layer F.SilkS) (width 0.254))
-  (fp_line (start -2.45000 0.70000) (end -2.45000 -0.70000) (layer F.SilkS) (width 0.254))
-  (fp_line (start -2.45000 -0.70000) (end -2.25000 -0.90000) (layer F.SilkS) (width 0.254))
-  (fp_line (start -2.25000 -0.90000) (end -0.95000 -0.90000) (layer F.SilkS) (width 0.254))
-)

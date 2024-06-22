@@ -1,0 +1,5 @@
+Name,Score
+Petr,440
+PETR,270
+KLM,0
+BASR,0

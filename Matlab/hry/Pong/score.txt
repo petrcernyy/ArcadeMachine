@@ -1,3 +1,0 @@
-Name,Score
-Petr,3
-KLM,1.00048828125

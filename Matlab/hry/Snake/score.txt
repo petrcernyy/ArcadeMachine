@@ -1,2 +1,0 @@
-Name,Score
-Petr,12

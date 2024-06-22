@@ -1,7 +1,0 @@
-(module "CrystalOscillator" (layer F.Cu) (tedit 5B0D3C36)
-  (fp_line (start -5.61000 2.37000) (end 5.64000 2.37000) (layer F.SilkS) (width 0.254))
-  (fp_line (start -5.61000 -2.33000) (end 5.64000 -2.33000) (layer F.SilkS) (width 0.254))
-  (fp_line (start 5.64000 2.37000) (end 5.64000 -2.33000) (layer F.SilkS) (width 0.254))
-  (fp_line (start -5.61000 2.37000) (end -5.61000 -2.33000) (layer F.SilkS) (width 0.254))
-  (fp_line (start -5.61000 0.00000) (end -5.61000 -2.33000) (layer F.SilkS) (width 0.254))
-)

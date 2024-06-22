@@ -1,8 +1,0 @@
-(module "LED_0603" (layer F.Cu) (tedit 5B0D3C36)
-  (fp_line (start -1.30000 0.80000) (end -0.30000 0.80000) (layer F.SilkS) (width 0.254))
-  (fp_line (start -1.50000 0.60000) (end -1.30000 0.80000) (layer F.SilkS) (width 0.254))
-  (fp_line (start -1.50000 0.60000) (end -1.50000 0.50000) (layer F.SilkS) (width 0.254))
-  (fp_line (start -1.50000 0.50000) (end -1.50000 -0.60000) (layer F.SilkS) (width 0.254))
-  (fp_line (start -1.50000 -0.60000) (end -1.30000 -0.80000) (layer F.SilkS) (width 0.254))
-  (fp_line (start -1.30000 -0.80000) (end -0.30000 -0.80000) (layer F.SilkS) (width 0.254))
-)

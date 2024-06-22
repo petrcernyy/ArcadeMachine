@@ -1,3 +1,0 @@
-(module "RED_LED" (layer F.Cu) (tedit 5B0D3C36)
-  (arc (start -1.22000 -1.37000) (end -1.22000 -1.37000) (mid -1.32000 -1.37000) (layer F.SilkS) (width 0.025) )
-)

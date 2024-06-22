@@ -1,8 +1,0 @@
-(module "SOD-323" (layer F.Cu) (tedit 5B0D3C36)
-  (fp_line (start -2.07500 0.40000) (end -1.87500 0.60000) (layer F.SilkS) (width 0.254))
-  (fp_line (start -1.77500 0.70000) (end -0.87500 0.70000) (layer F.SilkS) (width 0.254))
-  (fp_line (start -1.87500 0.60000) (end -1.77500 0.70000) (layer F.SilkS) (width 0.254))
-  (fp_line (start -2.07500 0.40000) (end -2.07500 -0.40000) (layer F.SilkS) (width 0.254))
-  (fp_line (start -2.07500 -0.40000) (end -1.77500 -0.70000) (layer F.SilkS) (width 0.254))
-  (fp_line (start -1.77500 -0.70000) (end -0.87500 -0.70000) (layer F.SilkS) (width 0.254))
-)

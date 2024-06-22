@@ -1,8 +1,0 @@
-(module "TQFP-32" (layer F.Cu) (tedit 5B0D3C36)
-  (arc (start -5.46100 -2.79400) (end -5.46100 -2.79400) (mid -5.71500 -2.79400) (layer F.SilkS) (width 0.0635) )
-  (fp_line (start -2.91500 -1.58001) (end -1.58000 -2.91501) (layer F.SilkS) (width 0.2))
-  (fp_line (start -1.58000 -2.91501) (end 2.91501 -2.91501) (layer F.SilkS) (width 0.2))
-  (fp_line (start 2.91501 2.91500) (end 2.91501 -2.91501) (layer F.SilkS) (width 0.2))
-  (fp_line (start -2.91500 2.91500) (end 2.91501 2.91500) (layer F.SilkS) (width 0.2))
-  (fp_line (start -2.91500 2.91500) (end -2.91500 -1.58001) (layer F.SilkS) (width 0.2))
-)

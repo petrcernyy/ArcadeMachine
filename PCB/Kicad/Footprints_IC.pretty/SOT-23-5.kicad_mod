@@ -1,8 +1,0 @@
-(module "SOT-23-5" (layer F.Cu) (tedit 5B0D3C36)
-  (arc (start -0.23750 -1.42500) (end 0.23750 -1.42500) (mid 0.00000 -1.18750) (layer F.SilkS) (width 0.2) )
-  (fp_line (start -0.23750 -1.42500) (end 0.03500 -1.42500) (layer F.SilkS) (width 0.2))
-  (fp_line (start -0.03500 -1.42500) (end 0.23750 -1.42500) (layer F.SilkS) (width 0.2))
-  (fp_line (start -0.03500 1.42500) (end -0.03500 -1.42500) (layer F.SilkS) (width 0.2))
-  (fp_line (start -0.03500 1.42500) (end 0.03500 1.42500) (layer F.SilkS) (width 0.2))
-  (fp_line (start 0.03500 1.42500) (end 0.03500 -1.42500) (layer F.SilkS) (width 0.2))
-)
